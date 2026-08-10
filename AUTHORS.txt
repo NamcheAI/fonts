@@ -13,4 +13,4 @@ Vercel <contactus@vercel.com>
 
 # Namche-Shadow
 Michael Marte <michael@ruhmetc.com>
-Cursor (Grok) <https://cursor.com>
+Cursor AI <https://cursor.com>

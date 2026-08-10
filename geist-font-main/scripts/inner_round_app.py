@@ -1,54 +1,94 @@
 #!/usr/bin/env python3
 """
-Interactive inner-round preview + export for Namche-Shadow.
+Namche-Shadow live preview (http://127.0.0.1:8765).
 
-Always reads from immutable geist-font-original/. Never writes there.
-Exports go to geist-font-main/exports/Namche-Shadow-r{N}/.
+Serves the RoundCorner-exported OTFs from exports/Namche-Shadow/otf/
+and proves them in the browser via @font-face.
 
   python3 scripts/inner_round_app.py
-  # open http://127.0.0.1:8765
 """
 
 from __future__ import annotations
 
-import json
-import shutil
+import mimetypes
 import sys
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import unquote, urlparse
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(SCRIPT_DIR))
-
-import round_inner_corners as ric  # noqa: E402
+EXPORTS_ROOT = SCRIPT_DIR.parent / "exports"
+NAMCHE_DIR = EXPORTS_ROOT / "Namche-Shadow"
+FONT_DIRS = {
+    ".woff2": NAMCHE_DIR / "woff2",
+    ".woff": NAMCHE_DIR / "woff",
+    ".otf": NAMCHE_DIR / "otf",
+    ".ttf": NAMCHE_DIR / "ttf",
+}
+FAMILY = "Namche-Shadow"
 
 HOST = "127.0.0.1"
 PORT = 8765
 
-ORIGINAL_PKG = ric.default_original_package()
-EXPORTS_ROOT = SCRIPT_DIR.parent / "exports"
+WEIGHTS = [
+    ("Thin", 100),
+    ("ExtraLight", 200),
+    ("Light", 300),
+    ("Regular", 400),
+    ("Medium", 500),
+    ("SemiBold", 600),
+    ("Bold", 700),
+    ("ExtraBold", 800),
+    ("Black", 900),
+]
 
 
-HTML_PAGE = r"""<!DOCTYPE html>
+def _font_face_css() -> str:
+    blocks = []
+    for style, wght in WEIGHTS:
+        stem = f"{FAMILY}-{style}"
+        blocks.append(
+            f"""@font-face {{
+  font-family: "{FAMILY}";
+  src: url("/fonts/{stem}.woff2") format("woff2"),
+       url("/fonts/{stem}.woff") format("woff"),
+       url("/fonts/{stem}.otf") format("opentype");
+  font-weight: {wght};
+  font-style: normal;
+  font-display: block;
+}}"""
+        )
+    return "\n".join(blocks)
+
+
+def _weight_options() -> str:
+    opts = []
+    for style, wght in WEIGHTS:
+        selected = " selected" if style == "Regular" else ""
+        opts.append(f'<option value="{wght}"{selected}>{style}</option>')
+    return "\n".join(opts)
+
+
+HTML_PAGE = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Namche-Shadow</title>
 <style>
-  :root {
+{_font_face_css()}
+  :root {{
     --bg: #111314;
     --panel: #1a1d1f;
     --text: #e8ebe4;
     --muted: #8b928a;
     --accent: #c8d4a8;
     --line: #2a2f2c;
-  }
-  * { box-sizing: border-box; }
-  body {
+  }}
+  * {{ box-sizing: border-box; }}
+  body {{
     margin: 0;
     font-family: "IBM Plex Sans", "Helvetica Neue", sans-serif;
     background: var(--bg);
@@ -56,39 +96,40 @@ HTML_PAGE = r"""<!DOCTYPE html>
     min-height: 100vh;
     display: grid;
     grid-template-rows: auto 1fr auto;
-  }
-  header {
+  }}
+  header {{
     padding: 1.25rem 1.5rem 0.75rem;
     border-bottom: 1px solid var(--line);
-  }
-  header h1 {
+  }}
+  header h1 {{
     margin: 0;
-    font-size: 1.1rem;
-    font-weight: 560;
-    letter-spacing: 0.02em;
-  }
-  header p {
-    margin: 0.35rem 0 0;
+    font-family: "{FAMILY}", sans-serif;
+    font-weight: 400;
+    font-size: 1.75rem;
+    letter-spacing: -0.02em;
+  }}
+  header p {{
+    margin: 0.45rem 0 0;
     color: var(--muted);
     font-size: 0.85rem;
-  }
-  main {
+  }}
+  main {{
     display: grid;
     grid-template-columns: minmax(260px, 320px) 1fr;
     min-height: 0;
-  }
-  @media (max-width: 800px) {
-    main { grid-template-columns: 1fr; }
-  }
-  aside {
+  }}
+  @media (max-width: 800px) {{
+    main {{ grid-template-columns: 1fr; }}
+  }}
+  aside {{
     padding: 1.25rem 1.5rem;
     border-right: 1px solid var(--line);
     background: var(--panel);
     display: flex;
     flex-direction: column;
     gap: 1.1rem;
-  }
-  label {
+  }}
+  label {{
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
@@ -96,9 +137,9 @@ HTML_PAGE = r"""<!DOCTYPE html>
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--muted);
-  }
-  input[type="range"] { width: 100%; accent-color: var(--accent); }
-  input[type="text"], select {
+  }}
+  input[type="range"] {{ width: 100%; accent-color: var(--accent); }}
+  input[type="text"], select {{
     background: #0f1112;
     border: 1px solid var(--line);
     color: var(--text);
@@ -108,20 +149,20 @@ HTML_PAGE = r"""<!DOCTYPE html>
     text-transform: none;
     letter-spacing: 0;
     font-size: 0.95rem;
-  }
-  .row {
+  }}
+  .row {{
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 0.75rem;
-  }
-  .value {
+  }}
+  .value {{
     font-variant-numeric: tabular-nums;
     color: var(--accent);
     font-size: 1.1rem;
-  }
-  .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-  .chip {
+  }}
+  .chips {{ display: flex; flex-wrap: wrap; gap: 0.4rem; }}
+  .chip {{
     border: 1px solid var(--line);
     background: #121516;
     color: var(--text);
@@ -129,36 +170,25 @@ HTML_PAGE = r"""<!DOCTYPE html>
     padding: 0.3rem 0.7rem;
     font-size: 0.8rem;
     cursor: pointer;
-  }
-  .chip:hover { border-color: var(--accent); }
-  button.primary {
-    margin-top: auto;
-    background: var(--accent);
-    color: #141714;
-    border: 0;
-    border-radius: 8px;
-    padding: 0.85rem 1rem;
-    font-weight: 650;
-    font-size: 0.95rem;
-    cursor: pointer;
-  }
-  button.primary:disabled { opacity: 0.5; cursor: wait; }
-  button.secondary {
+  }}
+  .chip:hover {{ border-color: var(--accent); }}
+  button.secondary {{
     background: transparent;
     color: var(--muted);
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 0.65rem 1rem;
     cursor: pointer;
-  }
-  .preview-wrap {
+  }}
+  .preview-wrap {{
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
     min-height: 420px;
-  }
-  .preview {
+  }}
+  .preview {{
+    position: relative;
     flex: 1;
     background: #0a0a0a;
     border: 1px solid var(--line);
@@ -168,144 +198,158 @@ HTML_PAGE = r"""<!DOCTYPE html>
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-  .preview svg { width: 100%; height: 100%; }
-  .status {
+    cursor: text;
+  }}
+  .preview:focus-within {{ border-color: var(--accent); }}
+  .preview-type {{
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 1.5rem 1.75rem;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    caret-color: var(--accent);
+    font-family: "{FAMILY}", sans-serif;
+    font-weight: 400;
+    font-size: 96px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    outline: none;
+    resize: none;
+    z-index: 1;
+  }}
+  .preview-hint {{
+    position: absolute;
+    left: 1.75rem;
+    bottom: 1rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.7;
+  }}
+  .preview:focus-within .preview-hint,
+  .preview.has-text .preview-hint {{ opacity: 0; }}
+  .status {{
     font-size: 0.85rem;
     color: var(--muted);
     min-height: 1.2em;
-  }
-  .status.ok { color: var(--accent); }
-  .status.err { color: #e8a0a0; }
-  footer {
+  }}
+  .status.ok {{ color: var(--accent); }}
+  .status.err {{ color: #e8a0a0; }}
+  footer {{
     padding: 0.75rem 1.5rem 1.25rem;
     border-top: 1px solid var(--line);
     color: var(--muted);
     font-size: 0.75rem;
-  }
-  code { color: var(--text); }
+  }}
+  code {{ color: var(--text); }}
 </style>
 </head>
 <body>
   <header>
     <h1>Namche-Shadow</h1>
-    <p>Inner-round preview. Reads only from <code>geist-font-original</code>. Export writes to <code>geist-font-main/exports/</code>.</p>
+    <p>RoundCorner export proof — caps/figures −40, rest −25. Serves <code>woff2</code> / <code>woff</code> / <code>otf</code> from <code>exports/Namche-Shadow/</code>.</p>
   </header>
   <main>
     <aside>
       <label>
-        <span class="row"><span>Radius (Regular UPM)</span><span class="value" id="radiusVal">40</span></span>
-        <input id="radius" type="range" min="0" max="80" step="1" value="40"/>
-      </label>
-      <label>
-        Master
-        <select id="master">
-          <option>Thin</option>
-          <option selected>Regular</option>
-          <option>Black</option>
+        Weight
+        <select id="weight">
+{_weight_options()}
         </select>
       </label>
       <label>
+        <span class="row"><span>Size</span><span class="value" id="sizeVal">96</span></span>
+        <input id="size" type="range" min="24" max="220" step="1" value="96"/>
+      </label>
+      <label>
         Preview text
-        <input id="text" type="text" value="Futurism"/>
+        <input id="text" type="text" value="Namche" autocomplete="off" spellcheck="false"/>
       </label>
       <div class="chips">
-        <button class="chip" type="button" data-text="Futurism">Futurism</button>
+        <button class="chip" type="button" data-text="Namche">Namche</button>
+        <button class="chip" type="button" data-text="NAMCHE">NAMCHE</button>
         <button class="chip" type="button" data-text="Hamburgefonstiv">Hamburgefonstiv</button>
-        <button class="chip" type="button" data-text="FEHTtfkx 0123">FEHTtfkx 0123</button>
+        <button class="chip" type="button" data-text="To AVATAR">To AVATAR</button>
+        <button class="chip" type="button" data-text="0123456789">0123456789</button>
+        <button class="chip" type="button" data-text="ÄÖÜßæœ">ÄÖÜßæœ</button>
       </div>
-      <button class="primary" id="exportBtn" type="button">Export font</button>
-      <button class="secondary" id="refreshBtn" type="button">Refresh preview</button>
+      <button class="secondary" id="refreshBtn" type="button">Reload fonts</button>
       <div class="status" id="status">Ready</div>
     </aside>
     <section class="preview-wrap">
-      <div class="preview" id="preview"></div>
+      <div class="preview" id="preview">
+        <textarea id="previewType" class="preview-type" spellcheck="false" autocomplete="off" aria-label="Type preview text">Namche</textarea>
+        <div class="preview-hint">Click and type to proof…</div>
+      </div>
     </section>
   </main>
   <footer>
-    Thin / Black radii scale automatically (×0.55 / ×1.35). Export = proof Latin .glyphspackage + Thin/Regular/Black TTFs.
+    Glyphs RoundCorner filters on static instances · VF kept unfiltered (incompatible after rounding).
   </footer>
 <script>
 const $ = (id) => document.getElementById(id);
-let timer = null;
-let busy = false;
 
-function setStatus(msg, cls) {
+function setStatus(msg, cls) {{
   const el = $("status");
   el.textContent = msg;
   el.className = "status" + (cls ? " " + cls : "");
-}
+}}
 
-async function updatePreview() {
-  if (busy) return;
-  busy = true;
-  const radius = $("radius").value;
-  const master = $("master").value;
-  const text = $("text").value || "Futurism";
-  $("radiusVal").textContent = radius;
-  setStatus("Rendering…");
-  try {
-    const url = `/api/preview?radius=${encodeURIComponent(radius)}&master=${encodeURIComponent(master)}&text=${encodeURIComponent(text)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(await res.text());
-    const svg = await res.text();
-    $("preview").innerHTML = svg;
-    const rNum = Number(radius);
-    let msg = `Preview · ${master} · r=${radius}`;
-    if (rNum > 40) {
-      msg += " — may over-round fine features; counters are protected";
-    }
-    setStatus(msg, "ok");
-  } catch (err) {
-    setStatus(String(err), "err");
-  } finally {
-    busy = false;
-  }
-}
+function syncText(fromPreview) {{
+  const val = fromPreview ? $("previewType").value : $("text").value;
+  if ($("text").value !== val) $("text").value = val;
+  if ($("previewType").value !== val) $("previewType").value = val;
+  $("preview").classList.toggle("has-text", Boolean(val && val.length));
+}}
 
-function schedulePreview() {
-  clearTimeout(timer);
-  timer = setTimeout(updatePreview, 120);
-}
+function applyPreview() {{
+  syncText(document.activeElement === $("previewType"));
+  const weight = $("weight").value;
+  const size = $("size").value;
+  const style = $("weight").selectedOptions[0].textContent;
+  $("sizeVal").textContent = size;
+  $("previewType").style.fontWeight = weight;
+  $("previewType").style.fontSize = size + "px";
+  document.querySelector("header h1").style.fontWeight = weight;
+  setStatus(`Preview · ${{style}} · ${{size}}px`, "ok");
+}}
 
-$("radius").addEventListener("input", () => {
-  $("radiusVal").textContent = $("radius").value;
-  schedulePreview();
-});
-$("master").addEventListener("change", schedulePreview);
-$("text").addEventListener("input", schedulePreview);
-$("refreshBtn").addEventListener("click", updatePreview);
-document.querySelectorAll(".chip").forEach((btn) => {
-  btn.addEventListener("click", () => {
+$("weight").addEventListener("change", applyPreview);
+$("size").addEventListener("input", applyPreview);
+$("text").addEventListener("input", () => {{
+  syncText(false);
+  applyPreview();
+}});
+$("previewType").addEventListener("input", () => {{
+  syncText(true);
+  applyPreview();
+}});
+$("preview").addEventListener("click", () => {{
+  $("previewType").focus();
+}});
+$("refreshBtn").addEventListener("click", () => {{
+  // Cache-bust @font-face by reloading
+  location.reload();
+}});
+document.querySelectorAll(".chip").forEach((btn) => {{
+  btn.addEventListener("click", () => {{
     $("text").value = btn.dataset.text;
-    updatePreview();
-  });
-});
+    $("previewType").value = btn.dataset.text;
+    syncText(false);
+    applyPreview();
+  }});
+}});
 
-$("exportBtn").addEventListener("click", async () => {
-  const radius = $("radius").value;
-  $("exportBtn").disabled = true;
-  setStatus("Exporting… this can take a minute");
-  try {
-    const res = await fetch("/api/export", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ radius: Number(radius) }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Export failed");
-    const ttfNote = data.ttfs && data.ttfs.length
-      ? ` · ${data.ttfs.length} TTF(s)`
-      : " · glyphspackage only (install fontmake for TTF)";
-    setStatus(`Exported ${data.export_dir}${ttfNote}`, "ok");
-  } catch (err) {
-    setStatus(String(err), "err");
-  } finally {
-    $("exportBtn").disabled = false;
-  }
-});
-
-updatePreview();
+document.fonts.ready.then(() => {{
+  syncText(false);
+  applyPreview();
+  setStatus("Namche-Shadow loaded", "ok");
+}}).catch((err) => setStatus(String(err), "err"));
 </script>
 </body>
 </html>
@@ -324,94 +368,64 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _send_json(self, code: int, payload: dict) -> None:
-        data = json.dumps(payload).encode("utf-8")
-        self._send(code, data, "application/json; charset=utf-8")
-
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
-        if parsed.path in ("/", "/index.html"):
+        path = unquote(parsed.path)
+
+        if path in ("/", "/index.html"):
             self._send(200, HTML_PAGE.encode("utf-8"), "text/html; charset=utf-8")
             return
-        if parsed.path == "/api/preview":
-            qs = parse_qs(parsed.query)
-            try:
-                radius = float(qs.get("radius", ["40"])[0])
-                master = qs.get("master", ["Regular"])[0]
-                text = qs.get("text", ["Futurism"])[0]
-                if master not in ric.MASTER_IDS:
-                    master = "Regular"
-                if not ORIGINAL_PKG.is_dir():
-                    raise FileNotFoundError(
-                        f"Missing original package: {ORIGINAL_PKG}"
-                    )
-                svg = ric.render_preview_svg(
-                    ORIGINAL_PKG, text, radius=radius, master=master
+
+        if path.startswith("/fonts/"):
+            name = Path(path).name
+            if "/" in name or ".." in name or not name.startswith(f"{FAMILY}-") and not name.startswith(f"{FAMILY}["):
+                self._send(404, b"Not found", "text/plain; charset=utf-8")
+                return
+            suffix = Path(name).suffix.lower()
+            font_dir = FONT_DIRS.get(suffix)
+            if font_dir is None:
+                self._send(404, b"Unsupported font format", "text/plain; charset=utf-8")
+                return
+            font_path = font_dir / name
+            if not font_path.is_file():
+                self._send(
+                    404,
+                    f"Missing font: {font_path}".encode("utf-8"),
+                    "text/plain; charset=utf-8",
                 )
-                self._send(200, svg.encode("utf-8"), "image/svg+xml; charset=utf-8")
-            except Exception as exc:
-                self._send(500, str(exc).encode("utf-8"), "text/plain; charset=utf-8")
+                return
+            ctype = {
+                ".woff2": "font/woff2",
+                ".woff": "font/woff",
+                ".otf": "font/otf",
+                ".ttf": "font/ttf",
+            }.get(suffix) or (mimetypes.guess_type(name)[0] or "application/octet-stream")
+            self._send(200, font_path.read_bytes(), ctype)
             return
+
         self._send(404, b"Not found", "text/plain; charset=utf-8")
-
-    def do_POST(self) -> None:
-        parsed = urlparse(self.path)
-        if parsed.path != "/api/export":
-            self._send(404, b"Not found", "text/plain; charset=utf-8")
-            return
-        length = int(self.headers.get("Content-Length", "0"))
-        raw = self.rfile.read(length) if length else b"{}"
-        try:
-            payload = json.loads(raw.decode("utf-8") or "{}")
-            radius = float(payload.get("radius", 40))
-            if not ORIGINAL_PKG.is_dir():
-                raise FileNotFoundError(f"Missing original package: {ORIGINAL_PKG}")
-
-            export_dir = EXPORTS_ROOT / ric.export_dir_name(radius)
-            if export_dir.exists():
-                shutil.rmtree(export_dir)
-            export_dir.mkdir(parents=True)
-
-            pkg = ric.export_filleted_package(
-                ORIGINAL_PKG, export_dir, radius=radius, family_name=ric.FAMILY_NAME
-            )
-            # License from upstream; Namche AUTHORS/CONTRIBUTORS from repo root
-            ofl = ORIGINAL_PKG.parent.parent / "OFL.txt"
-            if ofl.exists():
-                shutil.copy2(ofl, export_dir / "OFL.txt")
-            repo_root = SCRIPT_DIR.parent.parent
-            for name in ("AUTHORS.txt", "CONTRIBUTORS.txt"):
-                src = repo_root / name
-                if src.exists():
-                    shutil.copy2(src, export_dir / name)
-
-            ttf_dir = export_dir / "ttf"
-            ttfs = ric.build_ttfs_from_glyphspackage(pkg, ttf_dir)
-            self._send_json(
-                200,
-                {
-                    "ok": True,
-                    "export_dir": str(export_dir),
-                    "glyphspackage": str(pkg),
-                    "ttfs": [str(p) for p in ttfs],
-                    "radius": radius,
-                },
-            )
-        except Exception as exc:
-            self._send_json(500, {"ok": False, "error": str(exc)})
 
 
 def main() -> int:
-    if not ORIGINAL_PKG.is_dir():
+    otf_dir = FONT_DIRS[".otf"]
+    if not otf_dir.is_dir():
         sys.stderr.write(
-            f"Original package not found:\n  {ORIGINAL_PKG}\n"
-            "Create it first (see geist-font-original/README.md).\n"
+            f"Namche-Shadow fonts not found:\n  {otf_dir}\n"
+            "Export/rename OTFs into exports/Namche-Shadow/otf/ first.\n"
         )
+        return 1
+
+    missing = []
+    for style, _ in WEIGHTS:
+        for ext, folder in ((".otf", otf_dir), (".woff", FONT_DIRS[".woff"]), (".woff2", FONT_DIRS[".woff2"])):
+            if not (folder / f"{FAMILY}-{style}{ext}").is_file():
+                missing.append(f"{FAMILY}-{style}{ext}")
+    if missing:
+        sys.stderr.write("Missing fonts:\n  " + "\n  ".join(missing) + "\n")
         return 1
 
     venv_python = SCRIPT_DIR.parent / ".venv-inner-round" / "bin" / "python"
     if venv_python.is_file() and Path(sys.executable).resolve() != venv_python.resolve():
-        # Re-exec under project venv so export/fontmake deps are available.
         import os
 
         os.execv(str(venv_python), [str(venv_python), str(Path(__file__).resolve()), *sys.argv[1:]])
@@ -419,8 +433,7 @@ def main() -> int:
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     url = f"http://{HOST}:{PORT}/"
     print(f"Namche-Shadow → {url}")
-    print(f"Original: {ORIGINAL_PKG}")
-    print(f"Exports:  {EXPORTS_ROOT}")
+    print(f"Fonts:   {NAMCHE_DIR}/{{woff2,woff,otf}}")
     print("Ctrl+C to stop")
 
     threading.Timer(0.6, lambda: webbrowser.open(url)).start()

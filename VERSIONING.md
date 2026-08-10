@@ -1,6 +1,6 @@
 # Versioning
 
-This repository versions **released font builds** and the **inner-round tooling** that produces them.
+This repository versions **released Namche-Shadow font builds** and the tooling that prepares Glyphs RoundCorner filters / local proofs.
 
 ## Scheme
 
@@ -9,13 +9,13 @@ We use **Semantic Versioning 2.0.0**: `MAJOR.MINOR.PATCH`
 | Part | Bump when |
 |------|-----------|
 | **MAJOR** | Incompatible glyph / metric / name-table changes; breaking tool CLI or export layout |
-| **MINOR** | New features that stay compatible (new radius presets, new masters, new scripts, non-breaking glyph additions) |
+| **MINOR** | New features that stay compatible (new filter recipe, new weights, new scripts, non-breaking glyph additions) |
 | **PATCH** | Bug fixes, proofing fixes, docs, and export polish that do not change public API / intended outlines in a breaking way |
 
 Examples:
 
-- `0.1.0` → `0.2.0` — new fillet algorithm option, new weight, or new documented radius line
-- `0.2.0` → `0.2.1` — fix counter fill / preview bug; regenerate proofs
+- `0.1.0` → `0.2.0` — new RoundCorner recipe (e.g. −40/−25 → different pair), new weight, or documented delivery format
+- `0.2.0` → `0.2.1` — fix rename/packaging script; regenerate woff2; docs
 - `0.2.1` → `1.0.0` — first production delivery; metrics locked
 
 Pre-`1.0.0` versions may still change outlines aggressively; treat `0.x` as design iteration.
@@ -26,9 +26,10 @@ A released version is the combination of:
 
 1. **Sources of truth**
    - `geist-font-original/` — immutable pristine Geist upright package (never edit)
-   - `geist-font-main/scripts/` — fillet engine + UI used to generate variants
-2. **Documented radius / style line** for that release (e.g. inner-round `r40`, `r80`)
-3. **Exported binaries** attached to the GitHub Release (TTF / OTF / variable if available)
+   - `geist-font-main/sources/` — working Glyphs package with RoundCorner filters in `fontinfo.plist`
+   - `geist-font-main/scripts/` — filter applicator + static specimen UI
+2. **Documented filter recipe** for that release (e.g. caps/figures **−40**, rest **−25**; VF filters off)
+3. **Exported binaries** attached to the GitHub Release (`otf` / `woff` / `woff2`, plus `ttf` VF if shipped)
 
 Git tags mark the **repo state** that produced those binaries. Binaries themselves live on the Release assets (not necessarily in git — `exports/` is gitignored and regenerated).
 
@@ -37,11 +38,11 @@ Git tags mark the **repo state** that produced those binaries. Binaries themselv
 | Artifact | Pattern | Example |
 |----------|---------|---------|
 | Git tag | `vMAJOR.MINOR.PATCH` | `v0.1.0` |
-| Release title | `vMAJOR.MINOR.PATCH — short label` | `v0.1.0 — inner-round preview` |
-| Export folder (local) | `Namche-Shadow-r{N}` | `exports/Namche-Shadow-r40/` |
-| Font family (name tables / Glyphs) | `Namche-Shadow` | TTF: `Namche-Shadow-Regular.ttf` |
+| Release title | `vMAJOR.MINOR.PATCH — short label` | `v0.2.0 — RoundCorner −40/−25` |
+| Export folder (local) | `Namche-Shadow` | `exports/Namche-Shadow/` |
+| Font family (name tables / Glyphs) | `Namche-Shadow` | `Namche-Shadow-Regular.woff2` |
 
-Radius `N` is **not** the semver. The same repo version can ship multiple radii; list them in the release notes.
+The RoundCorner radii are **not** the semver. Record the filter recipe in the release notes.
 
 ## Single source of version number
 
@@ -49,18 +50,20 @@ Radius `N` is **not** the semver. The same repo version can ship multiple radii;
 - [`CHANGELOG.md`](CHANGELOG.md) must gain a section for every released tag
 - Git tag must match `VERSION` with a `v` prefix (`0.1.0` → `v0.1.0`)
 
-Delivery family name is **Namche-Shadow** (set at export; `geist-font-original` stays Geist). Record radius and masters in each release.
+Delivery family name is **Namche-Shadow** (set at export; `geist-font-original` stays Geist). Record filter recipe and masters in each release.
 
 ## Release checklist
 
 1. Confirm `geist-font-original/` is untouched.
 2. Bump `VERSION`.
 3. Update `CHANGELOG.md` (`Unreleased` → dated section).
-4. Regenerate proofs / exports for the radii in this release:
+4. Refresh filters and regenerate delivery binaries:
    ```bash
    cd geist-font-main
-   .venv-inner-round/bin/python scripts/inner_round_app.py
-   # Export from UI, or use scripts/round_inner_corners.py
+   python3 scripts/apply_roundcorner_filters.py
+   # Open sources in Glyphs → export statics (filters on; VF filters off)
+   # Rename to Namche-Shadow; build woff / woff2 into exports/Namche-Shadow/
+   python3 scripts/inner_round_app.py   # optional local proof
    ```
 5. Commit on `main` with a message that states the version intent.
 6. Tag and push:
@@ -68,11 +71,12 @@ Delivery family name is **Namche-Shadow** (set at export; `geist-font-original` 
    git tag -a "v$(cat VERSION)" -m "Release v$(cat VERSION)"
    git push origin main --tags
    ```
-7. Create a GitHub Release for the tag; upload TTF (and glyphspackage if sharing sources) as assets.
+7. Create a GitHub Release for the tag; upload `otf` / `woff` / `woff2` (and glyphspackage if sharing sources) as assets.
 8. In the release body, list:
-   - radii shipped (`r40`, `r80`, …)
-   - masters (`Thin` / `Regular` / `Black`, …)
-   - known limitations (e.g. variable font skipped when masters are incompatible after filleting)
+   - RoundCorner recipe (e.g. include −40 / exclude −25)
+   - masters shipped (Thin → Black, …)
+   - whether a VF is included (unfiltered)
+   - known limitations (VF incompatible with RoundCorner filters)
 
 ## Branching
 
@@ -82,14 +86,12 @@ Delivery family name is **Namche-Shadow** (set at export; `geist-font-original` 
 
 ## Compatibility notes for this project
 
-- **Never edit** files under `geist-font-original/`. Reset working sources with:
-  ```bash
-  cd geist-font-main
-  python3 scripts/round_inner_corners.py --reset-sources
-  ```
-- Filleting can change point counts across masters → variable font export may be skipped; that is a known limitation, not necessarily a version bump by itself.
-- Preview server (`scripts/inner_round_app.py`, port `8765`) is a local tool and is not versioned as a service.
+- **Never edit** files under `geist-font-original/`.
+- RoundCorner runs only inside **Glyphs at export**; `fontmake` does not apply Glyphs Filter custom parameters.
+- Applying RoundCorner to the variable instance breaks VF compatibility — keep those filters disabled.
+- Preview server (`scripts/inner_round_app.py`, port `8765`) serves static files only and is not versioned as a service.
+- `scripts/round_inner_corners.py` is legacy experimental tooling, not the release pipeline.
 
 ## Upstream attribution
 
-Based on [Vercel Geist Font](https://github.com/vercel/geist-font) (OFL). Keep `OFL.txt` with distributed fonts. Namche-Shadow authors and contributors are listed in root [`AUTHORS.txt`](AUTHORS.txt) / [`CONTRIBUTORS.txt`](CONTRIBUTORS.txt) (Michael Marte; Cursor (Grok) co-author). Release notes should say which upstream Geist revision the safecopy came from when known.
+Based on [Vercel Geist Font](https://github.com/vercel/geist-font) (OFL). Keep `OFL.txt` with distributed fonts. Namche-Shadow authors and contributors are listed in root [`AUTHORS.txt`](AUTHORS.txt) / [`CONTRIBUTORS.txt`](CONTRIBUTORS.txt) (Michael Marte; Cursor AI co-author). Release notes should say which upstream Geist revision the safecopy came from when known.

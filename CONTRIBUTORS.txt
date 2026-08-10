@@ -16,4 +16,4 @@ Guido Ferreyra <guido@tipografia.com.ar>
 
 # Namche-Shadow
 Michael Marte <michael@ruhmetc.com>
-Cursor (Grok) <https://cursor.com>
+Cursor AI <https://cursor.com>

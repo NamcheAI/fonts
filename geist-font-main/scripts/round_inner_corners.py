@@ -5,11 +5,13 @@ Round only concave (inner) corners in Geist .glyphspackage sources.
 - Keeps convex outer corners sharp
 - Remove-overlap first (pathops union / difference), then ink-trap collapse, then fillet outers
 - Fillets hole/counter concave corners (D/B/P/R/A) with a stricter feature cap
+- Acute fill interiors (A/M/N/V/W crotches) get angle-scaled radii so they
+  stay optically coherent with orthogonal stem/bar joins
 - Preview uses evenodd compound paths so counters stay open
 
 Usage:
   python3 scripts/round_inner_corners.py --dry-run
-  python3 scripts/round_inner_corners.py --write --radius 16
+  python3 scripts/round_inner_corners.py --write --radius 40
   # Change radius after a previous pass (resets from background first):
   python3 scripts/round_inner_corners.py --write --restore-from-background --radius 40
 """
@@ -48,10 +50,12 @@ MASTER_IDS = {
 }
 
 MASTER_RADIUS_SCALE = {
-    # Thin / Regular / Black — relative to --radius (Regular = 1.0)
+    # Optical coherence vs stem (Geist Thin ≈32 UPM): full absolute R melts Thin
+    # junctions (R/stem > 1). Keep Regular/Black at 1.0 (absolute R); ease Thin
+    # toward ~0.55–0.7 R/stem so Soft-inner reads as one family.
     MASTER_IDS["Thin"]: 0.55,
     MASTER_IDS["Regular"]: 1.00,
-    MASTER_IDS["Black"]: 1.35,
+    MASTER_IDS["Black"]: 1.00,
 }
 
 DIGIT_NAMES = {
@@ -182,6 +186,17 @@ SEG_TRIM_BUDGET = 0.98
 
 HOLE_FEATURE_CAP = 0.40  # counters get at most this fraction of their feature size
 
+# Orthogonal stem/bar joins (H/E/F/t) keep full radius. Acute fill interiors
+# (A apex, M/N/V/W crotches, K junctions) clog optically at the same R, so
+# shrink toward the 90° reference. Floor keeps a readable soft-inner cue.
+ACUTE_REF_ANGLE = math.pi / 2  # 90°
+ACUTE_RADIUS_FLOOR = 0.32
+# Max mouth size for acute tips, as a multiple of the slider radius. Stops
+# tan(phi/2) from opening a wide blunt chord, while still leaving a readable
+# round (a hard cap at r_use itself made M/N/V/W go nearly sharp).
+ACUTE_MOUTH_FACTOR = 1.15
+ACUTE_MOUTH_MAX = 52.0
+
 
 def capped_radius(radius: float, l1: float, l2: float, feature: float) -> float:
     """Limit fillet so large slider values cannot consume counters/bowls.
@@ -190,6 +205,25 @@ def capped_radius(radius: float, l1: float, l2: float, feature: float) -> float:
     corners so the slider still moves geometry without over-rounding.
     """
     return min(radius, 0.40 * min(l1, l2), 0.45 * feature)
+
+
+def angle_adjusted_radius(radius: float, phi: float) -> float:
+    """Reduce radius for acute fill interiors (large path-turn ``phi``).
+
+    ``phi`` is the absolute exterior turn at a concave join. Fill interior
+    angle is ``pi - phi``. At 90° interior the radius is unchanged; sharper
+    tips scale down proportionally (clamped by ``ACUTE_RADIUS_FLOOR``).
+    """
+    interior = math.pi - abs(phi)
+    if interior >= ACUTE_REF_ANGLE - 1e-6:
+        return radius
+    scale = max(ACUTE_RADIUS_FLOOR, interior / ACUTE_REF_ANGLE)
+    return radius * scale
+
+
+def acute_mouth_cap(radius: float, r_use: float) -> float:
+    """Limit how far acute fillets cut back along each flank."""
+    return max(r_use, min(radius * ACUTE_MOUTH_FACTOR, ACUTE_MOUTH_MAX))
 
 
 def hole_radius(radius: float, nodes: Sequence[Node]) -> float:
@@ -416,14 +450,20 @@ def fillet_polyline(points: List[Point], radius: float) -> Tuple[List[Node], int
         tan_half = math.tan(phi / 2)
         if tan_half < 1e-9:
             continue
-        r_use = capped_radius(radius, l1, l2, feature)
+        r_use = angle_adjusted_radius(
+            capped_radius(radius, l1, l2, feature), phi
+        )
         if r_use < 0.5:
             continue
-        trim = r_use * tan_half
-        max_trim = min(l1, l2) * 0.40
+        # Cap trim so acute tips don't open a wide blunt chord (tan(phi/2)
+        # grows fast past 90°), while keeping a visible round.
+        trim = min(
+            r_use * tan_half,
+            min(l1, l2) * 0.40,
+            acute_mouth_cap(radius, r_use),
+        )
         r_eff = r_use
-        if trim > max_trim:
-            trim = max_trim
+        if trim + 1e-9 < r_use * tan_half:
             r_eff = trim / tan_half
         if trim < 0.5:
             continue
@@ -642,23 +682,103 @@ def _circular_scoop_cubic(p1: Point, p2: Point, apex: Point, radius: float) -> O
     return ("curve", p1, add(p1, mul(t1, handle)), sub(p2, mul(t2, handle)), p2)
 
 
+def _path_bounds_center(nodes: Sequence[Node]) -> Point:
+    pts = oncurve_points_from_nodes(nodes)
+    if not pts:
+        return (0.0, 0.0)
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    return (0.5 * (min(xs) + max(xs)), 0.5 * (min(ys) + max(ys)))
+
+
 def fillet_mixed(nodes: List[Node], radius: float) -> Tuple[List[Node], int]:
     """
     Fillet concave corners in a contour, including joins where one or both
     sides are cubics (bowl-to-stem on a/e/u/r/m/n/g/s, etc.).
 
     Ordinary corners get a circular fillet of the requested radius. Near
-    antiparallel joins (ink-trap notches) grow a circular scoop with the slider:
-    flanks are cut back toward the mouth and bridged by a circular arc toward
-    the tip — never collapsed to a flat chord.
+    antiparallel *polyline* joins (ink-trap notches on H/E/F) grow a circular
+    scoop. Stem–arch crotches (curve involved) stay ordinary fillets — never
+    wedges. Near-flat G1 stem–bowl joins (u) get an inserted soft-inner.
     """
     segs = nodes_to_segments(nodes)
     m = len(segs)
     if m < 3:
         return nodes, 0
 
-    feature = path_feature_size(oncurve_points_from_nodes(nodes))
+    on_pts = oncurve_points_from_nodes(nodes)
+    feature = path_feature_size(on_pts)
+    center = _path_bounds_center(nodes)
     lengths = [seg_length(s) for s in segs]
+    hole = is_hole_path(nodes)
+
+    def _stem_arch_soft_inner(
+        j: int,
+        nxt: int,
+        u1: Point,
+        u2: Point,
+        vertex: Point,
+        l1: float,
+        l2: float,
+        *,
+        require_counter_side: bool,
+    ) -> bool:
+        """
+        Insert a slider-radius soft-inner at stem↔bowl/arch joins.
+
+        Ordinary circular-fillet math collapses on shallow (near-G1) kinks;
+        cut back ~R on each flank and scoop into the black instead.
+
+        ``require_counter_side``: for G1 near-flat joins, require glyph center
+        to the right of travel (u bowl inners). Concave arch crotches already
+        identify as inner corners, so they skip that check.
+        """
+        if hole:
+            return False
+        has_curve = segs[j][0] == "curve" or segs[nxt][0] == "curve"
+        both_lines = segs[j][0] == "line" and segs[nxt][0] == "line"
+        if not has_curve or both_lines:
+            return False
+        has_line = segs[j][0] == "line" or segs[nxt][0] == "line"
+        # G1 near-flat: stem line ↔ bowl curve, tangents still co-directional.
+        # Concave arch crotches are often near-antiparallel (dot < 0) — OK.
+        if require_counter_side:
+            if not has_line or dot(u1, u2) < 0.85:
+                return False
+        if has_line:
+            line_seg = segs[j] if segs[j][0] == "line" else segs[nxt]
+            line_dir = (
+                seg_tangent_in(line_seg)
+                if segs[j][0] == "line"
+                else seg_tangent_out(line_seg)
+            )
+            if abs(line_dir[1]) < 0.75:
+                return False
+        left_n = norm((-u1[1], u1[0]))
+        if left_n == (0.0, 0.0):
+            return False
+        if require_counter_side:
+            right_n = norm((u1[1], -u1[0]))
+            to_c = norm(sub(center, vertex))
+            if (
+                right_n == (0.0, 0.0)
+                or to_c == (0.0, 0.0)
+                or dot(right_n, to_c) < 0.15
+            ):
+                return False
+        r_use = min(radius, 0.40 * min(l1, l2), 0.45 * feature)
+        if r_use < 0.5:
+            return False
+        trim = min(r_use, min(l1, l2) * 0.35)
+        if trim < 0.5:
+            return False
+        cut_end[j] = trim
+        cut_start[nxt] = trim
+        is_wedge[j] = True
+        apexes[j] = add(vertex, mul(left_n, r_use))
+        bridge_r[j] = r_use
+        active.append(j)
+        return True
 
     # Pass 1: decide which junctions get a fillet and how far each flank is cut.
     cut_end = [0.0] * m    # trimmed off the end of segment j
@@ -673,36 +793,75 @@ def fillet_mixed(nodes: List[Node], radius: float) -> Tuple[List[Node], int]:
         u2 = seg_tangent_out(segs[nxt])
         if u1 == (0.0, 0.0) or u2 == (0.0, 0.0):
             continue
-        if cross(u1, u2) >= -1e-6:
-            continue  # convex or straight: keep outer corners sharp
-        ang = math.atan2(cross(u1, u2), dot(u1, u2))
+        l1, l2 = lengths[j], lengths[nxt]
+        if l1 < 1 or l2 < 1:
+            continue
+
+        both_lines = segs[j][0] == "line" and segs[nxt][0] == "line"
+        has_curve = segs[j][0] == "curve" or segs[nxt][0] == "curve"
+        vertex = seg_end(segs[j])
+        cr = cross(u1, u2)
+        ang = math.atan2(cr, dot(u1, u2))
         phi = abs(ang)
+
+        # Near-flat G1 stem–bowl (u bottoms): lower half + curve continues into
+        # the bowl (not up into an n/h arch spring).
+        if cr >= -1e-6 and phi < math.radians(18):
+            bowl_ok = False
+            if vertex[1] <= center[1]:
+                if segs[j][0] == "curve" and seg_start(segs[j])[1] < vertex[1] - 10:
+                    bowl_ok = True
+                if segs[nxt][0] == "curve" and seg_end(segs[nxt])[1] < vertex[1] - 10:
+                    bowl_ok = True
+            if bowl_ok and _stem_arch_soft_inner(
+                j, nxt, u1, u2, vertex, l1, l2, require_counter_side=True
+            ):
+                continue
+            continue
+
+        if cr >= -1e-6:
+            continue  # convex: keep outer corners sharp
         if phi < math.radians(18) or phi > math.radians(178):
             continue
         tan_half = math.tan(phi / 2)
         if tan_half < 1e-9:
             continue
-        l1, l2 = lengths[j], lengths[nxt]
-        if l1 < 1 or l2 < 1:
-            continue
 
-        vertex = seg_end(segs[j])
         axis = norm(add(mul(u1, -1.0), u2)) if phi > WEDGE_ANGLE else (0.0, 0.0)
         reach_a = dot(sub(seg_start(segs[j]), vertex), axis) if axis != (0.0, 0.0) else 0.0
         reach_b = dot(sub(seg_end(segs[nxt]), vertex), axis) if axis != (0.0, 0.0) else 0.0
+        reach_min = min(reach_a, reach_b)
 
-        # Shallow high-angle notch (ink trap / stem-arch crotch). Mouth alignment
-        # is not required: circular scoops are safe on misaligned joins (b/d/h/p/q),
-        # unlike the old flat-chord close. Deep diagonals (v/w/M/N…) stay ordinary
-        # via WEDGE_MAX_REACH.
-        if 1.0 < min(reach_a, reach_b) <= WEDGE_MAX_REACH:
-            # Cut both flanks back toward the mouth and bridge with a circular
-            # scoop toward the tip. Cuts stay on the flanks.
-            r_use = min(radius, 1.25 * feature)
-            if r_use < 0.5:
-                continue
-            # Keep scoops milder on tight ink-trap crotches.
-            closed = min(0.65, radius * WEDGE_DEPTH_GAIN / min(reach_a, reach_b))
+        # Ink-trap wedges: polyline-only (H/E/F notches).
+        use_poly_wedge = (
+            both_lines
+            and axis != (0.0, 0.0)
+            and 1.0 < reach_min <= WEDGE_MAX_REACH
+        )
+        # Stem–arch crotches: cubic flank + shallow tip. Open the mouth along
+        # the notch axis, then bridge with a circular scoop of slider radius.
+        use_arch_soft = (
+            has_curve
+            and not hole
+            and axis != (0.0, 0.0)
+            and 1.0 < reach_min <= WEDGE_MAX_REACH
+            and phi > WEDGE_ANGLE
+        )
+        if use_poly_wedge or use_arch_soft:
+            if use_arch_soft:
+                r_use = min(radius, 0.45 * feature)
+                if r_use < 0.5:
+                    continue
+                # Wider mouth than classic ink-trap so R reads at ~slider size.
+                closed = min(0.55, (r_use * 1.35) / reach_min)
+            else:
+                r_use = angle_adjusted_radius(min(radius, 1.25 * feature), phi)
+                if r_use < 0.5:
+                    continue
+                depth_gain = WEDGE_DEPTH_GAIN * max(
+                    ACUTE_RADIUS_FLOOR, min(1.0, (math.pi - phi) / ACUTE_REF_ANGLE)
+                )
+                closed = min(0.65, radius * depth_gain / reach_min)
             depth_a = closed * reach_a
             depth_b = closed * reach_b
             if depth_a < 0.5 or depth_b < 0.5:
@@ -716,16 +875,26 @@ def fillet_mixed(nodes: List[Node], radius: float) -> Tuple[List[Node], int]:
             is_wedge[j] = True
             apexes[j] = vertex
             bridge_r[j] = r_use
-        else:
-            r_use = capped_radius(radius, l1, l2, feature)
-            if r_use < 0.5:
-                continue
-            trim = min(r_use * tan_half, min(l1, l2) * 0.40)
-            if trim < 0.5:
-                continue
-            cut_end[j] = trim
-            cut_start[nxt] = trim
-            bridge_r[j] = r_use
+            active.append(j)
+            continue
+
+        r_use = angle_adjusted_radius(
+            capped_radius(radius, l1, l2, feature), phi
+        )
+        if r_use < 0.5:
+            continue
+        trim = min(
+            r_use * tan_half,
+            min(l1, l2) * 0.40,
+            acute_mouth_cap(radius, r_use),
+        )
+        if trim < 0.5:
+            continue
+        cut_end[j] = trim
+        cut_start[nxt] = trim
+        bridge_r[j] = (
+            trim / tan_half if tan_half > 1e-9 else r_use
+        )
         active.append(j)
 
     if not active:
@@ -814,12 +983,16 @@ def fillet_mixed(nodes: List[Node], radius: float) -> Tuple[List[Node], int]:
 
         if is_wedge[j] and apexes[j] is not None:
             # Scoop toward the notch tip — never flatten to a chord.
-            # Small slider → large arc radius (shallow); max → deeper but not a
-            # full semicircle punch through the top.
+            # Prefer the slider radius as the circle radius when the mouth is
+            # wide enough (arch soft-inners). Otherwise fit a milder scoop to
+            # the chord (classic ink-trap wedges on H/E/F).
             half = chord / 2.0
-            t = min(1.0, bridge_r[j] / 80.0)
-            # Milder sagitta: t=0 → ~2.9*half; t=1 → ~1.7*half (shallower than before).
-            r_scoop = half / (0.35 + 0.24 * t)
+            if bridge_r[j] >= half + 1e-3:
+                r_scoop = bridge_r[j]
+            else:
+                t = min(1.0, bridge_r[j] / 80.0)
+                # Milder sagitta: t=0 → ~2.9*half; t=1 → ~1.7*half.
+                r_scoop = half / (0.35 + 0.24 * t)
             scoop = _circular_scoop_cubic(p1, p2, apexes[j], r_scoop)
             if scoop is not None:
                 out_segs.append(scoop)
@@ -1432,11 +1605,22 @@ def process_glyph_file(
         else:
             reports.append(f"{layer_id[:8]}… r={layer_radius:.1f} unchanged")
 
+    new_text = repair_shapes_array_commas(new_text)
     changed = write and new_text != text
     if changed:
         path.write_text(new_text, encoding="utf-8")
 
     return any_geometry or changed or bool(reports_prefix), "; ".join(reports)
+
+
+def repair_shapes_array_commas(text: str) -> str:
+    """Insert missing commas between consecutive {…} dicts in OpenStep arrays.
+
+    Glyphs rejects packages when shape arrays contain `}\\n{` instead of `},\\n{`.
+    """
+    fixed = re.sub(r"\}(\s*)\{", r"},\1{", text)
+    fixed = re.sub(r"\},(\s*),(\s*)\{", r"},\1{", fixed)
+    return fixed
 
 
 # ---------------------------------------------------------------------------
@@ -1478,7 +1662,7 @@ def apply_radius_to_glyph_text(text: str, radius: float) -> Tuple[str, int]:
         total_fillets += fillets
         if new_body is not None:
             new_text = new_text[:body_start] + new_body + new_text[body_end:]
-    return new_text, total_fillets
+    return repair_shapes_array_commas(new_text), total_fillets
 
 
 def _resolve_glyph_name(ch: str) -> Optional[str]:
@@ -1611,6 +1795,147 @@ def nodes_to_svg_d(nodes: Sequence[Node]) -> str:
     return " ".join(parts)
 
 
+# Cache: package path → masterId → leftKey → rightKey → value
+_KERN_CACHE: dict = {}
+# Cache: package path → glyph name → (kernLeft, kernRight)
+_KERN_GROUP_CACHE: dict = {}
+
+
+def _strip_glyphs_name(token: str) -> str:
+    token = token.strip()
+    if len(token) >= 2 and token[0] == '"' and token[-1] == '"':
+        return token[1:-1]
+    return token
+
+
+def _load_kerning_table(package: Path, master: str) -> dict:
+    """Parse kerningLTR for one master into {leftKey: {rightKey: value}}."""
+    master_id = MASTER_IDS.get(master, MASTER_IDS["Regular"])
+    cache_key = (str(package.resolve()), master_id)
+    if cache_key in _KERN_CACHE:
+        return _KERN_CACHE[cache_key]
+
+    info = package / "fontinfo.plist"
+    table: dict = {}
+    if not info.is_file():
+        _KERN_CACHE[cache_key] = table
+        return table
+
+    text = info.read_text(encoding="utf-8")
+    m = re.search(r"kerningLTR\s*=\s*\{", text)
+    if not m:
+        _KERN_CACHE[cache_key] = table
+        return table
+
+    # Master block: "UUID" = { ... };
+    master_m = re.search(
+        rf'"{re.escape(master_id)}"\s*=\s*\{{', text[m.end() :]
+    )
+    if not master_m:
+        _KERN_CACHE[cache_key] = table
+        return table
+    start = m.end() + master_m.end()
+    depth = 1
+    i = start
+    while i < len(text) and depth:
+        ch = text[i]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+        i += 1
+    block = text[start : i - 1]
+
+    # Entries: "left" = { "right" = -12; ... };
+    for left_m in re.finditer(
+        r'("(?:\\.|[^"])*"|[A-Za-z0-9_.@-]+)\s*=\s*\{', block
+    ):
+        left_key = _strip_glyphs_name(left_m.group(1))
+        sub_start = left_m.end()
+        depth = 1
+        j = sub_start
+        while j < len(block) and depth:
+            if block[j] == "{":
+                depth += 1
+            elif block[j] == "}":
+                depth -= 1
+            j += 1
+        sub = block[sub_start : j - 1]
+        rights: dict = {}
+        for rm in re.finditer(
+            r'("(?:\\.|[^"])*"|[A-Za-z0-9_.@-]+)\s*=\s*(-?\d+(?:\.\d+)?)\s*;',
+            sub,
+        ):
+            rights[_strip_glyphs_name(rm.group(1))] = float(rm.group(2))
+        if rights:
+            table[left_key] = rights
+
+    _KERN_CACHE[cache_key] = table
+    return table
+
+
+def _glyph_kern_groups(package: Path, glyph_name: str) -> Tuple[Optional[str], Optional[str]]:
+    """Return (kernLeft, kernRight) group names for a glyph."""
+    cache_key = (str(package.resolve()), glyph_name)
+    if cache_key in _KERN_GROUP_CACHE:
+        return _KERN_GROUP_CACHE[cache_key]
+    fp = package / "glyphs" / glyph_filename(glyph_name)
+    left = right = None
+    if fp.is_file():
+        text = fp.read_text(encoding="utf-8")
+        lm = re.search(r"kernLeft\s*=\s*([^;]+);", text)
+        rm = re.search(r"kernRight\s*=\s*([^;]+);", text)
+        if lm:
+            left = _strip_glyphs_name(lm.group(1))
+        if rm:
+            right = _strip_glyphs_name(rm.group(1))
+    _KERN_GROUP_CACHE[cache_key] = (left, right)
+    return left, right
+
+
+def _pair_kern(
+    table: dict,
+    package: Path,
+    left_name: Optional[str],
+    right_name: Optional[str],
+) -> float:
+    """Glyphs-style kerning lookup (glyph or @MMK_L_/@MMK_R_ class keys)."""
+    if not left_name or not right_name or not table:
+        return 0.0
+    _l_left, l_right = _glyph_kern_groups(package, left_name)
+    r_left, _r_right = _glyph_kern_groups(package, right_name)
+    left_keys = [left_name]
+    if l_right:
+        left_keys.append(f"@MMK_L_{l_right}")
+    right_keys = [right_name]
+    if r_left:
+        right_keys.append(f"@MMK_R_{r_left}")
+    for lk in left_keys:
+        rights = table.get(lk)
+        if not rights:
+            continue
+        for rk in right_keys:
+            if rk in rights:
+                return float(rights[rk])
+    return 0.0
+
+
+def _space_width(package: Path, master: str) -> float:
+    fp = package / "glyphs" / "space.glyph"
+    if not fp.is_file():
+        return 250.0
+    text = fp.read_text(encoding="utf-8")
+    layer_id = MASTER_IDS.get(master, MASTER_IDS["Regular"])
+    wm = re.search(
+        rf'layerId = "{re.escape(layer_id)}";[\s\S]*?width = ([0-9.]+);',
+        text,
+    )
+    if wm:
+        return float(wm.group(1))
+    wm = re.search(r"width = ([0-9.]+);", text)
+    return float(wm.group(1)) if wm else 250.0
+
+
 def render_preview_svg(
     package: Path,
     preview_text: str,
@@ -1619,17 +1944,27 @@ def render_preview_svg(
     fill: str = "#e8ebe4",
     background: str = "#0a0a0a",
 ) -> str:
-    """Render a proof string as SVG using in-memory filleted outlines."""
+    """Render a proof string as SVG using real advances + Geist kerning."""
     parts: List[str] = []
     x_cursor = 0.0
+    kern_table = _load_kerning_table(package, master)
+    space_w = _space_width(package, master)
+    prev_name: Optional[str] = None
+
     for ch in preview_text:
         if ch == " ":
-            x_cursor += 200
+            x_cursor += space_w
+            prev_name = None
             continue
         name = _resolve_glyph_name(ch)
         if not name:
-            x_cursor += 200
+            x_cursor += space_w
+            prev_name = None
             continue
+
+        kern = _pair_kern(kern_table, package, prev_name, name)
+        x_cursor += kern
+
         paths, width = load_filleted_layer(package, name, master, radius)
         # Single evenodd compound path so counters stay open in every SVG host.
         d = node_paths_to_evenodd_svg_d(paths)
@@ -1655,8 +1990,8 @@ def render_preview_svg(
                 )
                 if wm:
                     width = float(wm.group(1))
-        # Display-only proof tracking (export/metrics use real advances).
-        x_cursor += width + 80
+        x_cursor += width
+        prev_name = name
 
     vb_w = max(x_cursor + 80, 400)
     vb_h = 900
@@ -1775,8 +2110,8 @@ def build_ttfs_from_glyphspackage(
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
-        # Master TTFs (no interpolation). Variable/instances often fail after
-        # per-master fillet radius scaling changes point counts.
+        # Master TTFs (no interpolation). Variable/instances can still fail when
+        # feature-capped fillets produce different point counts across masters.
         try:
             proc = subprocess.run(
                 cmd_prefix
@@ -1858,8 +2193,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument(
         "--radius",
         type=float,
-        default=16.0,
-        help="Fillet radius in UPM at Regular (default 16)",
+        default=40.0,
+        help="Fillet radius in UPM (constant across masters; default 40)",
     )
     ap.add_argument(
         "--glyphs",
