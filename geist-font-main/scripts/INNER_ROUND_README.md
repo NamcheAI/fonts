@@ -1,6 +1,8 @@
-# Geist Inner Round tool
+# Namche-Shadow (inner round tool)
 
 Interactive preview + export for rounded **inner** corners (sharp outer corners).
+
+Delivery family name: **Namche-Shadow** (Geist remains the immutable source).
 
 ## Paths
 
@@ -9,7 +11,7 @@ Interactive preview + export for rounded **inner** corners (sharp outer corners)
 | `../geist-font-original/` | **Immutable** pristine Geist Sans upright sources |
 | `scripts/inner_round_app.py` | Local web UI |
 | `scripts/round_inner_corners.py` | Fillet engine + CLI |
-| `exports/Geist-inner-r{N}/` | Export output (glyphspackage + TTF) |
+| `exports/Namche-Shadow-r{N}/` | Export output (glyphspackage + TTF) |
 
 `geist-font-main.zip` is **not** used as the original (it already contained filleted outlines).
 
@@ -29,8 +31,8 @@ In the UI: set radius → **Export font**.
 
 Writes:
 
-- `exports/Geist-inner-r{N}/Geist.glyphspackage` (open in Glyphs)
-- `exports/Geist-inner-r{N}/ttf/Geist-{Thin,Regular,Black}.ttf` (installable masters)
+- `exports/Namche-Shadow-r{N}/Namche-Shadow.glyphspackage` (open in Glyphs)
+- `exports/Namche-Shadow-r{N}/ttf/Namche-Shadow-{Thin,Regular,Black}.ttf` (installable masters)
 
 Variable / intermediate instances are skipped when fillet radii change point counts across masters (open the `.glyphspackage` in Glyphs for full VF export after cleanup).
 

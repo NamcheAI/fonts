@@ -1,0 +1,19 @@
+# People who contributed to Namche-Shadow / this repository.
+# Copyright authors are listed in AUTHORS.txt.
+#
+# Names should be added as:
+# Name <email address>
+
+# Upstream Geist
+Andrés Briganti <info@briganti.works>
+Mateo Zaragoza <mateo@basement.studio>
+Basement.studio <hello@basement.studio>
+Vercel <contactus@vercel.com>
+Evil Rabbit <evilrabbit@vercel.com>
+José Rago <jose@basement.studio>
+Facundo Santana <facundo@basement.studio>
+Guido Ferreyra <guido@tipografia.com.ar>
+
+# Namche-Shadow
+Michael Marte <michael@ruhmetc.com>
+Cursor (Grok) <https://cursor.com>

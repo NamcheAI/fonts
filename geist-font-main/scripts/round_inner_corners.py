@@ -23,6 +23,10 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
+# Delivery family name (source packages remain Geist; renamed at export).
+SOURCE_FAMILY_NAME = "Geist"
+FAMILY_NAME = "Namche-Shadow"
+
 try:
     import pathops
     from fontTools.misc import bezierTools
@@ -1667,24 +1671,51 @@ def render_preview_svg(
     )
 
 
+def apply_family_name(
+    package: Path,
+    family_name: str = FAMILY_NAME,
+    source_family: str = SOURCE_FAMILY_NAME,
+) -> None:
+    """Rewrite Glyphs familyName / VF fileName from source family to delivery name."""
+    info = package / "fontinfo.plist"
+    if not info.is_file():
+        return
+    text = info.read_text(encoding="utf-8")
+    # Quoted or bare familyName assignment
+    text = re.sub(
+        rf'(familyName\s*=\s*)(?:"{re.escape(source_family)}"|{re.escape(source_family)})\s*;',
+        rf'\1"{family_name}";',
+        text,
+        count=1,
+    )
+    text = text.replace(f'"{source_family}[wght]"', f'"{family_name}[wght]"')
+    info.write_text(text, encoding="utf-8")
+
+
+def export_dir_name(radius: float) -> str:
+    return f"{FAMILY_NAME}-r{int(round(radius))}"
+
+
 def export_filleted_package(
     source_package: Path,
     dest_dir: Path,
     radius: float,
     glyph_names: Optional[Sequence[str]] = None,
+    family_name: str = FAMILY_NAME,
 ) -> Path:
     """
-    Copy pristine package to dest_dir/Geist.glyphspackage and apply fillets.
+    Copy pristine package to dest_dir/{family}.glyphspackage, rename family, apply fillets.
     Returns path to the written glyphspackage.
     """
     import shutil
 
     names = list(glyph_names) if glyph_names is not None else list(PROOF_GLYPHS)
-    dest_pkg = dest_dir / "Geist.glyphspackage"
+    dest_pkg = dest_dir / f"{family_name}.glyphspackage"
     if dest_pkg.exists():
         shutil.rmtree(dest_pkg)
     dest_dir.mkdir(parents=True, exist_ok=True)
     shutil.copytree(source_package, dest_pkg)
+    apply_family_name(dest_pkg, family_name=family_name)
 
     glyphs_dir = dest_pkg / "glyphs"
     for name in names:
@@ -1698,8 +1729,18 @@ def export_filleted_package(
     return dest_pkg
 
 
+def _delivery_ttf_name(path: Path, family_name: str = FAMILY_NAME) -> Path:
+    """Map Geist-*.ttf → Namche-Shadow-*.ttf when needed."""
+    name = path.name
+    if name.startswith(f"{SOURCE_FAMILY_NAME}-") or name.startswith(f"{SOURCE_FAMILY_NAME}["):
+        name = family_name + name[len(SOURCE_FAMILY_NAME) :]
+    elif name.startswith(SOURCE_FAMILY_NAME) and not name.startswith(family_name):
+        name = family_name + name[len(SOURCE_FAMILY_NAME) :]
+    return path.with_name(name)
+
+
 def build_ttfs_from_glyphspackage(
-    glyphspackage: Path, out_ttf_dir: Path
+    glyphspackage: Path, out_ttf_dir: Path, family_name: str = FAMILY_NAME
 ) -> List[Path]:
     """
     Build static + variable TTFs with fontmake if available.
@@ -1759,7 +1800,7 @@ def build_ttfs_from_glyphspackage(
                 )
             else:
                 for f in (tmp_path / "ttf").rglob("*.ttf"):
-                    dest = out_ttf_dir / f.name
+                    dest = _delivery_ttf_name(out_ttf_dir / f.name, family_name)
                     shutil.copy2(f, dest)
                     written.append(dest)
         except Exception as exc:
@@ -1783,7 +1824,7 @@ def build_ttfs_from_glyphspackage(
             )
             if proc.returncode == 0:
                 for f in (tmp_path / "variable").glob("*.ttf"):
-                    dest = out_ttf_dir / f.name
+                    dest = _delivery_ttf_name(out_ttf_dir / f.name, family_name)
                     shutil.copy2(f, dest)
                     written.append(dest)
             else:

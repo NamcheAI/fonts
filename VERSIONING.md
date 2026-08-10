@@ -16,7 +16,7 @@ Examples:
 
 - `0.1.0` → `0.2.0` — new fillet algorithm option, new weight, or new documented radius line
 - `0.2.0` → `0.2.1` — fix counter fill / preview bug; regenerate proofs
-- `0.2.1` → `1.0.0` — first production brand delivery; metrics locked for clients
+- `0.2.1` → `1.0.0` — first production delivery; metrics locked
 
 Pre-`1.0.0` versions may still change outlines aggressively; treat `0.x` as design iteration.
 
@@ -38,8 +38,8 @@ Git tags mark the **repo state** that produced those binaries. Binaries themselv
 |----------|---------|---------|
 | Git tag | `vMAJOR.MINOR.PATCH` | `v0.1.0` |
 | Release title | `vMAJOR.MINOR.PATCH — short label` | `v0.1.0 — inner-round preview` |
-| Export folder (local) | `Geist-inner-r{N}` | `exports/Geist-inner-r40/` |
-| Font family (design) | Keep OFL / Geist attribution; document any renamed delivery name in the release notes | |
+| Export folder (local) | `Namche-Shadow-r{N}` | `exports/Namche-Shadow-r40/` |
+| Font family (name tables / Glyphs) | `Namche-Shadow` | TTF: `Namche-Shadow-Regular.ttf` |
 
 Radius `N` is **not** the semver. The same repo version can ship multiple radii; list them in the release notes.
 
@@ -49,7 +49,7 @@ Radius `N` is **not** the semver. The same repo version can ship multiple radii;
 - [`CHANGELOG.md`](CHANGELOG.md) must gain a section for every released tag
 - Git tag must match `VERSION` with a `v` prefix (`0.1.0` → `v0.1.0`)
 
-Do not invent a second version string in font name tables until the brand delivery name is finalized; then record the mapping in the release notes.
+Delivery family name is **Namche-Shadow** (set at export; `geist-font-original` stays Geist). Record radius and masters in each release.
 
 ## Release checklist
 
@@ -92,4 +92,4 @@ Do not invent a second version string in font name tables until the brand delive
 
 ## Upstream attribution
 
-Based on [Vercel Geist Font](https://github.com/vercel/geist-font) (OFL). Keep `OFL.txt` / `AUTHORS.txt` with distributed fonts. Custom inner-round work is additive; release notes should say which upstream Geist revision the safecopy came from when known.
+Based on [Vercel Geist Font](https://github.com/vercel/geist-font) (OFL). Keep `OFL.txt` with distributed fonts. Namche-Shadow authors and contributors are listed in root [`AUTHORS.txt`](AUTHORS.txt) / [`CONTRIBUTORS.txt`](CONTRIBUTORS.txt) (Michael Marte; Cursor (Grok) co-author). Release notes should say which upstream Geist revision the safecopy came from when known.

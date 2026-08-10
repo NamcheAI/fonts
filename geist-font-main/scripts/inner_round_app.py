@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Interactive inner-round preview + export for Geist Sans upright.
+Interactive inner-round preview + export for Namche-Shadow.
 
 Always reads from immutable geist-font-original/. Never writes there.
-Exports go to geist-font-main/exports/Geist-inner-r{N}/.
+Exports go to geist-font-main/exports/Namche-Shadow-r{N}/.
 
   python3 scripts/inner_round_app.py
   # open http://127.0.0.1:8765
@@ -37,7 +37,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Geist Inner Round</title>
+<title>Namche-Shadow</title>
 <style>
   :root {
     --bg: #111314;
@@ -188,8 +188,8 @@ HTML_PAGE = r"""<!DOCTYPE html>
 </head>
 <body>
   <header>
-    <h1>Geist Inner Round</h1>
-    <p>Reads only from <code>geist-font-original</code>. Export writes to <code>geist-font-main/exports/</code>.</p>
+    <h1>Namche-Shadow</h1>
+    <p>Inner-round preview. Reads only from <code>geist-font-original</code>. Export writes to <code>geist-font-main/exports/</code>.</p>
   </header>
   <main>
     <aside>
@@ -367,17 +367,21 @@ class Handler(BaseHTTPRequestHandler):
             if not ORIGINAL_PKG.is_dir():
                 raise FileNotFoundError(f"Missing original package: {ORIGINAL_PKG}")
 
-            export_dir = EXPORTS_ROOT / f"Geist-inner-r{int(round(radius))}"
+            export_dir = EXPORTS_ROOT / ric.export_dir_name(radius)
             if export_dir.exists():
                 shutil.rmtree(export_dir)
             export_dir.mkdir(parents=True)
 
             pkg = ric.export_filleted_package(
-                ORIGINAL_PKG, export_dir, radius=radius
+                ORIGINAL_PKG, export_dir, radius=radius, family_name=ric.FAMILY_NAME
             )
-            # Copy license
-            for name in ("OFL.txt", "AUTHORS.txt"):
-                src = ORIGINAL_PKG.parent.parent / name
+            # License from upstream; Namche AUTHORS/CONTRIBUTORS from repo root
+            ofl = ORIGINAL_PKG.parent.parent / "OFL.txt"
+            if ofl.exists():
+                shutil.copy2(ofl, export_dir / "OFL.txt")
+            repo_root = SCRIPT_DIR.parent.parent
+            for name in ("AUTHORS.txt", "CONTRIBUTORS.txt"):
+                src = repo_root / name
                 if src.exists():
                     shutil.copy2(src, export_dir / name)
 
@@ -414,7 +418,7 @@ def main() -> int:
 
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     url = f"http://{HOST}:{PORT}/"
-    print(f"Geist Inner Round → {url}")
+    print(f"Namche-Shadow → {url}")
     print(f"Original: {ORIGINAL_PKG}")
     print(f"Exports:  {EXPORTS_ROOT}")
     print("Ctrl+C to stop")
