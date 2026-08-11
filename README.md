@@ -6,7 +6,7 @@ Custom type for Namche, based on Geist Sans with **Glyphs RoundCorner** export f
 
 | Family | Recipe | Notes |
 |--------|--------|-------|
-| **Namche-Shadow** | multi-tier (see docs) | Primary — specimen + `~/Library/Fonts` |
+| **Namche-Shadow** | multi-tier 6-filter (see docs) | Primary — specimen + `~/Library/Fonts` |
 | **Namche-Shadow-Simple** | caps/figures **−40**, rest **−25** | Prior two-radius recipe — specimen + `~/Library/Fonts` |
 
 Variable instance filters stay **disabled** (VF export incompatible after rounding). Upstream sources stay named Geist; delivery names are set at export.

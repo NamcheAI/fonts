@@ -12,7 +12,7 @@ Operational notes from shipping **Namche-Shadow** (multi-tier) and **Namche-Shad
 
 | Family | Role | Recipe |
 |--------|------|--------|
-| **Namche-Shadow** | Primary | Multi-tier: −60 exclude → −80 include → −60 (`A,V,Z,X,4,6,9,Germandbls`) → −50 (`k,x,v,w`) → −40 (`M,N,W`) |
+| **Namche-Shadow** | Primary | Multi-tier (2026-08-11d): −60 exclude → −80 include → −60 (`A,V,Z,X,Germandbls`) → −50 (`k,x,v,w`) → −40 (`M,N,W,two,four,seven,six`) → −50 (`nine`) |
 | **Namche-Shadow-Simple** | Prior recipe | Two-radius: caps/figures −40 include, rest −25 exclude |
 
 The temporary name **Namche-Darth** for the multi-tier stack is **retired**. Older docs/commits may still mention it.

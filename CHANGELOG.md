@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Version numbers 
 ### Changed
 - Production path pivoted to **Glyphs RoundCorner** export filters; VF filters disabled
 - **Family rename (2026-08-11):** multi-tier stack is **Namche-Shadow**; prior −40/−25 recipe is **Namche-Shadow-Simple** (retired temporary name **Namche-Darth**)
-- **Namche-Shadow** multi-tier static stack: −60 exclude → −80 include → −60 include (`A,V,Z,X,four,six,nine,Germandbls`) → −50 include (`k,x,v,w`) → −40 include (`M,N,W`); VF RoundCorner off
+- **Namche-Shadow** multi-tier stack updated (**2026-08-11d**, 6 filters): −60 exclude → −80 include → −60 (`A,V,Z,X,Germandbls`) → −50 (`k,x,v,w`) → −40 (`M,N,W,two,four,seven,six`) → −50 (`nine`); VF RoundCorner off
 - Specimen `PREVIEW_FAMILIES` = Shadow + Shadow-Simple; installs under `~/Library/Fonts/Namche-Shadow{,-Simple}/`
 - Local preview app serves static `woff2` / `woff` / `otf` with a family switcher
 - Docs rewritten for RoundCorner delivery (`README.md`, `scripts/NAMCHE_SHADOW.md`, `VERSIONING.md`, `LEARNINGS.md`)

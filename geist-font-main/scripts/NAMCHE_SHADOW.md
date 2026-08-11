@@ -8,20 +8,21 @@ Operational findings (CLI failure, naming collisions, verification): [`LEARNINGS
 
 | Family | Status | Recipe | Paste file |
 |--------|--------|--------|------------|
-| **Namche-Shadow** | Shipping (primary) | Multi-tier stack (2026-08-11) — see below | `roundcorner_shadow_filters.txt` |
+| **Namche-Shadow** | Shipping (primary) | Multi-tier stack (2026-08-11d) — see below | `roundcorner_shadow_filters.txt` |
 | **Namche-Shadow-Simple** | Shipping | Mild `−25` exclude + strong `−40` include (caps/figures set) | `roundcorner_caps_figs_filters.txt` |
 
 > Naming note (2026-08-11): multi-tier was briefly called **Namche-Darth**; that name is retired. The old two-radius (−40/−25) family is **Namche-Shadow-Simple**.
 
 ### Namche-Shadow static filter stack (order matters)
 
-On every **static** instance (Thin → Black):
+On every **static** instance (Thin → Black) — **2026-08-11d**:
 
-1. `RoundCorner;-60;exclude:…` — base / rest (large exclude list; also keeps `k,x,v,w` out of this pass)
+1. `RoundCorner;-60;exclude:…` — base / rest
 2. `RoundCorner;-80;include:…` — most caps / figures
-3. `RoundCorner;-60;include:A, V, Z, X, four, six, nine, Germandbls`
+3. `RoundCorner;-60;include:A, V, Z, X, Germandbls`
 4. `RoundCorner;-50;include:k, x, v, w`
-5. `RoundCorner;-40;include:M, N, W`
+5. `RoundCorner;-40;include:M, N, W, two, four, seven, six`
+6. `RoundCorner;-50;include:nine`
 
 **Variable instance:** RoundCorner filters **off** (strip entirely). Glyphs reports incompatible masters when filters reshape contours for VF.
 
@@ -90,8 +91,10 @@ Archives live under each family’s `_received/` (formerly also under a `Namche-
 
 | Date | Archive | Notes |
 |------|---------|--------|
-| 2026-08-11b | `exports/Namche-Shadow/_received/2026-08-11b-multi-tier-gui-otf/` | Multi-tier GUI OTFs → delivery **Namche-Shadow** |
-| 2026-08-11 | `exports/Namche-Shadow/_received/2026-08-11-Geist.glyphspackage` | Multi-tier source; working copy `Namche-Shadow.glyphspackage` |
+| 2026-08-11d | `exports/Namche-Shadow/_received/2026-08-11d-*` | Current multi-tier (6 filters); Downloads `Namche-Shadow.glyphspackage` + `NamcheShadow-*.otf` |
+| 2026-08-11c | `exports/Namche-Shadow/_received/2026-08-11c-*` | Prior GUI drop (5-filter era) |
+| 2026-08-11b | `exports/Namche-Shadow/_received/2026-08-11b-multi-tier-gui-otf/` | Earlier multi-tier GUI OTFs |
+| 2026-08-11 | `exports/Namche-Shadow/_received/2026-08-11-Geist.glyphspackage` | Early multi-tier source package |
 | 2026-08-10 | `exports/Namche-Shadow-Simple/_received/2026-08-10-shadow-restored-from-manual/` | **Namche-Shadow-Simple** (−40/−25) restore source |
 
 `Geist-*.otf` in Downloads may be either recipe depending on which package was exported — confirm before renaming into `exports/Namche-*/`.

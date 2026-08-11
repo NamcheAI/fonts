@@ -28,7 +28,7 @@ PREVIEW_FAMILIES = ("Namche-Shadow", "Namche-Shadow-Simple")
 FAMILIES = {
     "Namche-Shadow": {
         "label": "Namche-Shadow",
-        "recipe": "multi-tier −60 / −80 / −60(A,V,Z,X,4,6,9,ẞ) / −50(k,x,v,w) / −40(M,N,W)",
+        "recipe": "multi-tier −60 / −80 / −60(A,V,Z,X,ẞ) / −50(k,x,v,w) / −40(M,N,W,2,4,7,6) / −50(9)",
     },
     "Namche-Shadow-Simple": {
         "label": "Namche-Shadow-Simple",
