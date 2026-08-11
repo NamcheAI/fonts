@@ -39,10 +39,10 @@ Git tags mark the **repo state** that produced those binaries. Binaries themselv
 |----------|---------|---------|
 | Git tag | `vMAJOR.MINOR.PATCH` | `v0.1.0` |
 | Release title | `vMAJOR.MINOR.PATCH — short label` | `v0.2.0 — RoundCorner −40/−25` |
-| Export folder (local) | `Namche-Shadow` | `exports/Namche-Shadow/` |
-| Font family (name tables / Glyphs) | `Namche-Shadow` | `Namche-Shadow-Regular.woff2` |
+| Export folder (local) | `Namche-Shadow` / `Namche-Shadow-Simple` | `exports/Namche-Shadow/` |
+| Font family (name tables / Glyphs) | `Namche-Shadow` / `Namche-Shadow-Simple` | `Namche-Shadow-Regular.woff2` |
 
-The RoundCorner radii are **not** the semver. Record the filter recipe in the release notes.
+The RoundCorner radii are **not** the semver. Record each family’s filter recipe in the release notes (Shadow multi-tier; Shadow-Simple −40/−25).
 
 ## Single source of version number
 
@@ -60,11 +60,13 @@ Delivery family name is **Namche-Shadow** (set at export; `geist-font-original` 
 4. Refresh filters and regenerate delivery binaries:
    ```bash
    cd geist-font-main
-   python3 scripts/apply_roundcorner_filters.py
-   # Open sources in Glyphs → export statics (filters on; VF filters off)
-   # Rename to Namche-Shadow; build woff / woff2 into exports/Namche-Shadow/
+   # Shadow-Simple (two-radius):
+   python3 scripts/apply_roundcorner_filters.py --strong -40 --mild -25
+   # Shadow (multi-tier): paste scripts/roundcorner_shadow_filters.txt in Glyphs
+   # Export statics in Glyphs (VF RoundCorner off) → rename → woff/woff2
    python3 scripts/inner_round_app.py   # optional local proof
    ```
+   See [`LEARNINGS.md`](LEARNINGS.md) before trusting any `glyphs-cli` export.
 5. Commit on `main` with a message that states the version intent.
 6. Tag and push:
    ```bash
@@ -73,10 +75,10 @@ Delivery family name is **Namche-Shadow** (set at export; `geist-font-original` 
    ```
 7. Create a GitHub Release for the tag; upload `otf` / `woff` / `woff2` (and glyphspackage if sharing sources) as assets.
 8. In the release body, list:
-   - RoundCorner recipe (e.g. include −40 / exclude −25)
+   - RoundCorner recipe per family (Shadow multi-tier vs Shadow-Simple −40/−25)
    - masters shipped (Thin → Black, …)
    - whether a VF is included (unfiltered)
-   - known limitations (VF incompatible with RoundCorner filters)
+   - known limitations (VF incompatible with RoundCorner filters; GUI export required)
 
 ## Branching
 

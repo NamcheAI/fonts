@@ -6,15 +6,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Version numbers 
 ## [Unreleased]
 
 ### Changed
-- Production path pivoted to **Glyphs RoundCorner** export filters (caps/figures **−40**, rest **−25**; VF filters disabled)
-- Local preview app serves static **Namche-Shadow** `woff2` / `woff` / `otf` from `exports/Namche-Shadow/`
-- Docs rewritten for RoundCorner delivery (`README.md`, `scripts/NAMCHE_SHADOW.md`, `VERSIONING.md`)
-- Delivery family name set to **Namche-Shadow** (export folders, Glyphs `familyName`, filenames)
+- Production path pivoted to **Glyphs RoundCorner** export filters; VF filters disabled
+- **Family rename (2026-08-11):** multi-tier stack is **Namche-Shadow**; prior −40/−25 recipe is **Namche-Shadow-Simple** (retired temporary name **Namche-Darth**)
+- **Namche-Shadow** multi-tier static stack: −60 exclude → −80 include → −60 include (`A,V,Z,X,four,six,nine,Germandbls`) → −50 include (`k,x,v,w`) → −40 include (`M,N,W`); VF RoundCorner off
+- Specimen `PREVIEW_FAMILIES` = Shadow + Shadow-Simple; installs under `~/Library/Fonts/Namche-Shadow{,-Simple}/`
+- Local preview app serves static `woff2` / `woff` / `otf` with a family switcher
+- Docs rewritten for RoundCorner delivery (`README.md`, `scripts/NAMCHE_SHADOW.md`, `VERSIONING.md`, `LEARNINGS.md`)
 - Scope clarified as Namche-only; attribution added for Michael Marte and Cursor AI
 
 ### Added
-- `scripts/apply_roundcorner_filters.py` + paste file for RoundCorner filter strings
-- Web formats in local delivery folder (`woff/`, `woff2/`)
+- **Namche-Shadow-Simple** recipe: caps/figures **−40**, rest **−25**
+- Multi-tier paste file `scripts/roundcorner_shadow_filters.txt` + Glyphs export macro `glyphs_export_namche_shadow.py`
+- `scripts/apply_roundcorner_filters.py` with `--strong` / `--mild` radius args (Glyphs-native Filter string; Simple pairs)
+- Archive paths for manual Glyphs drops: `exports/Namche-*/_received/` (avoids clobbering identically named `Geist.glyphspackage` / `Geist-*.otf`)
+- [`LEARNINGS.md`](LEARNINGS.md): `glyphs-cli` RoundCorner failure, Downloads naming collisions, verification checklist
+- Web formats in local delivery folders (`woff/`, `woff2/`)
 - Immutable Geist Sans upright safecopy (`geist-font-original/`)
 
 ### Deprecated

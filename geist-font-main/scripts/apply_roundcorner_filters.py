@@ -2,12 +2,19 @@
 """
 Apply Glyphs RoundCorner export filters:
 
-  -40  Caps + figures + cap/figure-like glyphs  (include)
-  -25  everything else                          (exclude same set)
+  strong (include)  — caps + figures + cap/figure-like glyphs
+  mild   (exclude)  — everything else (same set)
+
+Defaults (Namche-Shadow-Simple): strong −40 / mild −25
+
+For primary **Namche-Shadow** multi-tier stacks, paste
+`scripts/roundcorner_shadow_filters.txt` in Glyphs instead of this helper.
 
 Usage:
   python3 scripts/apply_roundcorner_filters.py
-  python3 scripts/apply_roundcorner_filters.py --package sources/Geist.glyphspackage
+  python3 scripts/apply_roundcorner_filters.py --strong -40 --mild -25 \\
+      --package exports/Namche-Shadow-Simple/Namche-Shadow-Simple.glyphspackage \\
+      --paste-file scripts/roundcorner_caps_figs_filters.txt
 """
 
 from __future__ import annotations
@@ -93,7 +100,7 @@ DIGIT_BASE = {
     "nine",
 }
 
-# Minuskel-Eszett nie in -40; Cap-Eszett schon (über Uppercase-Klasse)
+# Minuskel-Eszett nie in strong; Cap-Eszett schon (über Uppercase-Klasse)
 EXCLUDE_FROM_STRONG = frozenset({"germandbls", "ß"})
 
 
@@ -144,20 +151,22 @@ def build_strong_set(package: Path) -> list[str]:
 
 
 def filter_value(radius: int, mode: str, glyph_list: list[str]) -> str:
+    # Glyphs GUI / Copy Custom Parameter format (no visualCorrectness slot, no space
+    # after colon). The `;1;` form can be ignored by glyphs-cli RoundCorner.
     joined = ", ".join(glyph_list)
-    return f"RoundCorner;{radius};1;{mode}: {joined}"
+    return f"RoundCorner;{radius};{mode}:{joined}"
 
 
 def filter_plist_block(radius: int, mode: str, glyph_list: list[str]) -> str:
     value = filter_value(radius, mode, glyph_list)
-    # Escape is unnecessary: glyph names have no quotes/backslashes
     return '{\nname = Filter;\nvalue = "' + value + '";\n}'
 
 
 def _strip_existing_roundcorner_filters(custom_params_body: str) -> str:
     """Remove existing RoundCorner Filter entries from a customParameters body."""
     pattern = re.compile(
-        r"\{\s*name\s*=\s*Filter;\s*value\s*=\s*\"RoundCorner[^\"]*\";\s*\},?\s*",
+        r"\{\s*(?:disabled\s*=\s*1;\s*)?name\s*=\s*Filter;\s*"
+        r"value\s*=\s*\"RoundCorner[^\"]*\";\s*\},?\s*",
         re.S,
     )
     cleaned = pattern.sub("", custom_params_body)
@@ -169,15 +178,22 @@ def _strip_existing_roundcorner_filters(custom_params_body: str) -> str:
     return cleaned
 
 
-def apply_to_fontinfo(fontinfo: str, glyph_list: list[str]) -> tuple[str, int]:
+def apply_to_fontinfo(
+    fontinfo: str,
+    glyph_list: list[str],
+    *,
+    strong: int = -40,
+    mild: int = -25,
+) -> tuple[str, int]:
     """
     Insert RoundCorner filters into every static instance customParameters.
     Skips variable instances (type = variable).
     Returns (new_fontinfo, instances_updated).
     """
-    include_block = filter_plist_block(-40, "include", glyph_list)
-    exclude_block = filter_plist_block(-25, "exclude", glyph_list)
-    injection = "\n" + include_block + ",\n" + exclude_block + ",\n"
+    # Match Glyphs GUI order used in manual exports: mild exclude, then strong include
+    exclude_block = filter_plist_block(mild, "exclude", glyph_list)
+    include_block = filter_plist_block(strong, "include", glyph_list)
+    injection = "\n" + exclude_block + ",\n" + include_block + ",\n"
 
     instances_match = re.search(r"instances\s*=\s*\(", fontinfo)
     if not instances_match:
@@ -186,7 +202,6 @@ def apply_to_fontinfo(fontinfo: str, glyph_list: list[str]) -> tuple[str, int]:
     head = fontinfo[: instances_match.end()]
     rest = fontinfo[instances_match.end() :]
 
-    # Split instances by top-level `{` ... `},` — walk braces
     updated = 0
     out_parts: list[str] = [head]
     i = 0
@@ -196,7 +211,6 @@ def apply_to_fontinfo(fontinfo: str, glyph_list: list[str]) -> tuple[str, int]:
             out_parts.append(rest[i])
             i += 1
             continue
-        # parse one dict
         depth = 0
         start = i
         while i < n:
@@ -210,7 +224,6 @@ def apply_to_fontinfo(fontinfo: str, glyph_list: list[str]) -> tuple[str, int]:
                     break
             i += 1
         block = rest[start:i]
-        # consume trailing comma/whitespace
         j = i
         while j < n and rest[j] in " \t\n\r":
             j += 1
@@ -223,6 +236,23 @@ def apply_to_fontinfo(fontinfo: str, glyph_list: list[str]) -> tuple[str, int]:
             i = j
 
         if re.search(r"\btype\s*=\s*variable\s*;", block):
+            # Strip any RoundCorner filters from VF instance (keep disabled or remove)
+            cp = re.search(r"customParameters\s*=\s*\(", block)
+            if cp:
+                cp_start = cp.end()
+                depth = 1
+                k = cp_start
+                while k < len(block):
+                    if block[k] == "(":
+                        depth += 1
+                    elif block[k] == ")":
+                        depth -= 1
+                        if depth == 0:
+                            break
+                    k += 1
+                if depth == 0:
+                    body = _strip_existing_roundcorner_filters(block[cp_start:k])
+                    block = block[:cp_start] + body + block[k:]
             out_parts.append(block + trailing)
             continue
 
@@ -256,13 +286,20 @@ def apply_to_fontinfo(fontinfo: str, glyph_list: list[str]) -> tuple[str, int]:
     return "".join(out_parts), updated
 
 
-def write_paste_file(path: Path, glyph_list: list[str]) -> None:
-    include = filter_value(-40, "include", glyph_list)
-    exclude = filter_value(-25, "exclude", glyph_list)
+def write_paste_file(
+    path: Path,
+    glyph_list: list[str],
+    *,
+    strong: int = -40,
+    mild: int = -25,
+) -> None:
+    include = filter_value(strong, "include", glyph_list)
+    exclude = filter_value(mild, "exclude", glyph_list)
     path.write_text(
         "# Paste into Font Info → Exports → Custom Parameters (Filter)\n"
         "# Strong set: Uppercase + Decimal Digits (+ variants) + cap/figure-like\n"
-        f"# Glyph count: {len(glyph_list)}\n\n"
+        f"# Glyph count: {len(glyph_list)}\n"
+        f"# Recipe: strong (include) {strong} / mild (exclude) {mild}\n\n"
         f"{include}\n\n"
         f"{exclude}\n",
         encoding="utf-8",
@@ -278,18 +315,44 @@ def main() -> None:
         help="Path to .glyphspackage (repeatable). Default: sources/Geist.glyphspackage",
     )
     parser.add_argument(
+        "--strong",
+        type=int,
+        default=-40,
+        help="RoundCorner radius for caps/figures include set (default: -40)",
+    )
+    parser.add_argument(
+        "--mild",
+        type=int,
+        default=-25,
+        help="RoundCorner radius for everything else / exclude set (default: -25)",
+    )
+    parser.add_argument(
+        "--paste-file",
+        type=Path,
+        default=None,
+        help="Where to write paste-ready filter strings "
+        "(default: scripts/roundcorner_caps_figs_filters.txt)",
+    )
+    parser.add_argument(
+        "--family-name",
+        type=str,
+        default=None,
+        help='Rewrite familyName / VF fileName from Geist to this name (e.g. "Namche-Shadow-Simple")',
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Build set and paste file only; do not rewrite fontinfo.plist",
     )
     args = parser.parse_args()
     packages = args.package or [DEFAULT_PACKAGE]
+    paste_path = args.paste_file or (SCRIPT_DIR / "roundcorner_caps_figs_filters.txt")
 
     primary = packages[0]
     strong = build_strong_set(primary)
-    paste_path = SCRIPT_DIR / "roundcorner_caps_figs_filters.txt"
-    write_paste_file(paste_path, strong)
+    write_paste_file(paste_path, strong, strong=args.strong, mild=args.mild)
     print(f"Strong set: {len(strong)} glyphs")
+    print(f"Recipe: include {args.strong} / exclude {args.mild}")
     print(f"Wrote {paste_path}")
 
     if args.dry_run:
@@ -297,12 +360,28 @@ def main() -> None:
 
     for package in packages:
         fontinfo_path = package / "fontinfo.plist"
-        # Rebuild per package so lists match that package's glyph coverage
         strong_pkg = build_strong_set(package)
         text = fontinfo_path.read_text(encoding="utf-8")
-        new_text, count = apply_to_fontinfo(text, strong_pkg)
+        new_text, count = apply_to_fontinfo(
+            text, strong_pkg, strong=args.strong, mild=args.mild
+        )
+        if args.family_name:
+            new_text = re.sub(
+                r'(familyName\s*=\s*)(?:"Geist"|Geist|"Namche-[^"]+")\s*;',
+                rf'\1"{args.family_name}";',
+                new_text,
+                count=1,
+            )
+            new_text = re.sub(
+                r'value = "(?:Geist|Namche-[^"]+)\[wght\]";',
+                f'value = "{args.family_name}[wght]";',
+                new_text,
+                count=1,
+            )
         fontinfo_path.write_text(new_text, encoding="utf-8")
         print(f"Updated {count} static instances in {fontinfo_path}")
+        if args.family_name:
+            print(f"familyName → {args.family_name}")
 
 
 if __name__ == "__main__":

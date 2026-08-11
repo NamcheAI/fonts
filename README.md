@@ -1,53 +1,52 @@
 # Namche Fonts
 
-**Namche-Shadow** — custom type for Namche, based on Geist Sans with **Glyphs RoundCorner** export filters (softer inner corners; sharp outers stay crisp).
+Custom type for Namche, based on Geist Sans with **Glyphs RoundCorner** export filters (softer inner corners; sharp outers stay crisp).
 
-## Filter recipe
+## Families
 
-| Target | RoundCorner |
-|--------|-------------|
-| Caps, figures, and cap/figure-like glyphs | **−40** (`include`) |
-| Everything else | **−25** (`exclude` same set) |
-| Variable instance | Filters **disabled** (VF export incompatible after rounding) |
+| Family | Recipe | Notes |
+|--------|--------|-------|
+| **Namche-Shadow** | multi-tier (see docs) | Primary — specimen + `~/Library/Fonts` |
+| **Namche-Shadow-Simple** | caps/figures **−40**, rest **−25** | Prior two-radius recipe — specimen + `~/Library/Fonts` |
 
-Delivery family name is **Namche-Shadow**. Upstream sources stay named Geist.
+Variable instance filters stay **disabled** (VF export incompatible after rounding). Upstream sources stay named Geist; delivery names are set at export.
+
+> The multi-tier family was briefly called **Namche-Darth**; that name is retired.
 
 ## Layout
 
 | Path | Role |
 |------|------|
 | [`geist-font-original/`](geist-font-original/) | Immutable pristine Geist upright sources — **do not edit** |
-| [`geist-font-main/sources/`](geist-font-main/sources/) | Working Glyphs package (filters in `fontinfo.plist`) |
-| [`geist-font-main/scripts/apply_roundcorner_filters.py`](geist-font-main/scripts/apply_roundcorner_filters.py) | Writes RoundCorner filters into static instances |
+| [`geist-font-main/sources/`](geist-font-main/sources/) | Working Glyphs package (Simple −40/−25 filters) |
+| [`geist-font-main/scripts/apply_roundcorner_filters.py`](geist-font-main/scripts/apply_roundcorner_filters.py) | Writes two-radius RoundCorner filters (`--strong` / `--mild`) |
 | [`geist-font-main/scripts/inner_round_app.py`](geist-font-main/scripts/inner_round_app.py) | Local static specimen (woff2 / woff / otf) |
-| [`geist-font-main/exports/Namche-Shadow/`](geist-font-main/exports/Namche-Shadow/) | Local delivery folder (`otf/`, `woff/`, `woff2/`, `ttf/`, glyphspackage) — gitignored |
-| [`VERSION`](VERSION) | Current release version |
-| [`VERSIONING.md`](VERSIONING.md) | How we version, tag, and ship releases |
-| [`CHANGELOG.md`](CHANGELOG.md) | Release history |
+| `geist-font-main/exports/Namche-Shadow/` | Primary Shadow delivery + package + `_received` — gitignored |
+| `geist-font-main/exports/Namche-Shadow-Simple/` | Simple delivery + package + `_received` — gitignored |
+| [`VERSION`](VERSION) / [`VERSIONING.md`](VERSIONING.md) / [`CHANGELOG.md`](CHANGELOG.md) | Releases |
 | [`AUTHORS.txt`](AUTHORS.txt) / [`CONTRIBUTORS.txt`](CONTRIBUTORS.txt) | Attribution |
 
-Details: [`geist-font-main/scripts/NAMCHE_SHADOW.md`](geist-font-main/scripts/NAMCHE_SHADOW.md)
+Details: [`geist-font-main/scripts/NAMCHE_SHADOW.md`](geist-font-main/scripts/NAMCHE_SHADOW.md) · operational findings: [`LEARNINGS.md`](LEARNINGS.md)
 
 ## Quick start (specimen)
 
 ```bash
 cd geist-font-main
 python3 scripts/inner_round_app.py
-# → http://127.0.0.1:8765  (serves static woff2 / woff / otf)
+# → http://127.0.0.1:8765  (Namche-Shadow + Namche-Shadow-Simple)
 ```
-
-Requires exported fonts under `exports/Namche-Shadow/` (see build notes below).
 
 ## Build notes
 
-1. Keep `geist-font-original/` untouched. Work in `geist-font-main/sources/Geist.glyphspackage`.
-2. Apply or refresh RoundCorner filters:
-   ```bash
-   cd geist-font-main
-   python3 scripts/apply_roundcorner_filters.py
-   ```
-3. Open the package in **Glyphs** → export **static** instances (filters on). Leave the variable instance filters disabled.
-4. Rename the family to **Namche-Shadow** (name tables / filenames) and package web formats into `exports/Namche-Shadow/` (`otf/`, `woff/`, `woff2/`, optional `ttf/` VF).
+**Namche-Shadow-Simple** (recipe −40 / −25):
+
+```bash
+cd geist-font-main
+python3 scripts/apply_roundcorner_filters.py --strong -40 --mild -25
+# Open sources in Glyphs → export statics → rename to Namche-Shadow-Simple → woff/woff2
+```
+
+**Namche-Shadow** (multi-tier) — package under `exports/Namche-Shadow/` and paste file `scripts/roundcorner_shadow_filters.txt`. Export statics in Glyphs (VF RoundCorner off). See [`NAMCHE_SHADOW.md`](geist-font-main/scripts/NAMCHE_SHADOW.md).
 
 Ship binaries on GitHub Releases — see **[VERSIONING.md](VERSIONING.md)**.
 
@@ -59,10 +58,6 @@ See **[VERSIONING.md](VERSIONING.md)**. Short version: SemVer in `VERSION`, tags
 
 ## Credits
 
-- **Michael Marte** — Namche-Shadow design direction and contribution
+- **Michael Marte** — Namche design direction and contribution
 - **Cursor AI** — co-author, tooling and repository setup
-- Upstream **Geist** by Vercel / Basement Studio / Andrés Briganti (OFL) — see `AUTHORS.txt`
-
-## License
-
-Upstream Geist is licensed under the SIL Open Font License (`OFL.txt` in the Geist trees). Keep attribution with any redistributed font files.
+- Based on [Geist](https://github.com/vercel/geist-font) (SIL Open Font License 1.1)
