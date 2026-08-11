@@ -2,7 +2,7 @@
 
 Production path: **Glyphs RoundCorner export filters** on Geist Sans upright sources.
 
-Operational findings (CLI failure, naming collisions, verification): [`LEARNINGS.md`](../../LEARNINGS.md).
+Operational findings (CLI failure, naming collisions, verification): [`LEARNINGS.md`](../../LEARNINGS.md). Outside Glyphs / interactive app options: [`ROUNDCORNER_OUTSIDE_GLYPHS.md`](ROUNDCORNER_OUTSIDE_GLYPHS.md).
 
 **Both families ship** in the local specimen (`PREVIEW_FAMILIES`) and under `~/Library/Fonts/Namche-Shadow{,-Simple}/`.
 

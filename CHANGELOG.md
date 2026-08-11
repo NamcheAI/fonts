@@ -15,6 +15,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Version numbers 
 - Scope clarified as Namche-only; attribution added for Michael Marte and Cursor AI
 
 ### Added
+- [`geist-font-main/scripts/ROUNDCORNER_OUTSIDE_GLYPHS.md`](geist-font-main/scripts/ROUNDCORNER_OUTSIDE_GLYPHS.md): research on RoundCorner outside Glyphs (CLI, RoboFont, FontLab) and interactive-app options
 - **Namche-Shadow-Simple** recipe: caps/figures **−40**, rest **−25**
 - Multi-tier paste file `scripts/roundcorner_shadow_filters.txt` + Glyphs export macro `glyphs_export_namche_shadow.py`
 - `scripts/apply_roundcorner_filters.py` with `--strong` / `--mild` radius args (Glyphs-native Filter string; Simple pairs)

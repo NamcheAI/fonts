@@ -1,6 +1,6 @@
 # Learnings & findings (Namche RoundCorner)
 
-Operational notes from shipping **Namche-Shadow** (multi-tier) and **Namche-Shadow-Simple** (−40/−25) via Glyphs RoundCorner. Recipe details live in [`geist-font-main/scripts/NAMCHE_SHADOW.md`](geist-font-main/scripts/NAMCHE_SHADOW.md).
+Operational notes from shipping **Namche-Shadow** (multi-tier) and **Namche-Shadow-Simple** (−40/−25) via Glyphs RoundCorner. Recipe details live in [`geist-font-main/scripts/NAMCHE_SHADOW.md`](geist-font-main/scripts/NAMCHE_SHADOW.md). Research on CLI / RoboFont / interactive apps: [`geist-font-main/scripts/ROUNDCORNER_OUTSIDE_GLYPHS.md`](geist-font-main/scripts/ROUNDCORNER_OUTSIDE_GLYPHS.md).
 
 ## Production path
 

@@ -26,7 +26,7 @@ Variable instance filters stay **disabled** (VF export incompatible after roundi
 | [`VERSION`](VERSION) / [`VERSIONING.md`](VERSIONING.md) / [`CHANGELOG.md`](CHANGELOG.md) | Releases |
 | [`AUTHORS.txt`](AUTHORS.txt) / [`CONTRIBUTORS.txt`](CONTRIBUTORS.txt) | Attribution |
 
-Details: [`geist-font-main/scripts/NAMCHE_SHADOW.md`](geist-font-main/scripts/NAMCHE_SHADOW.md) · operational findings: [`LEARNINGS.md`](LEARNINGS.md)
+Details: [`geist-font-main/scripts/NAMCHE_SHADOW.md`](geist-font-main/scripts/NAMCHE_SHADOW.md) · operational findings: [`LEARNINGS.md`](LEARNINGS.md) · RoundCorner outside Glyphs / interactive app: [`ROUNDCORNER_OUTSIDE_GLYPHS.md`](geist-font-main/scripts/ROUNDCORNER_OUTSIDE_GLYPHS.md)
 
 ## Quick start (specimen)
 
