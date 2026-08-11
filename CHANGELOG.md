@@ -6,6 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Version numbers 
 ## [Unreleased]
 
 ### Changed
+- Fixed leftover **Namche-Darth** VF `fileName` and trailing commas in RoundCorner glyph lists (2026-08-11d package hygiene)
 - Production path pivoted to **Glyphs RoundCorner** export filters; VF filters disabled
 - **Family rename (2026-08-11):** multi-tier stack is **Namche-Shadow**; prior −40/−25 recipe is **Namche-Shadow-Simple** (retired temporary name **Namche-Darth**)
 - **Namche-Shadow** multi-tier stack updated (**2026-08-11d**, 6 filters): −60 exclude → −80 include → −60 (`A,V,Z,X,Germandbls`) → −50 (`k,x,v,w`) → −40 (`M,N,W,two,four,seven,six`) → −50 (`nine`); VF RoundCorner off

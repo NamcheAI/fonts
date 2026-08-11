@@ -74,3 +74,8 @@ geist-font-main/exports/
 ```
 
 `exports/` is gitignored; binaries ship on GitHub Releases. Docs and scripts in git are the reproducible recipe.
+
+## Package hygiene after renames
+
+When renaming families (e.g. temporary **Namche-Darth** → **Namche-Shadow**), rewrite not only `familyName` and OTF name tables but also instance `fileName` custom parameters (VF often keeps `Namche-Darth[wght]`). Strip trailing commas in RoundCorner `include:` / `exclude:` glyph lists — Glyphs paste can leave `six, ` which should be `six`.
+
