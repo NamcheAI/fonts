@@ -1,10 +1,14 @@
-# People who contributed to Namche-Shadow / this repository.
-# Copyright authors are listed in AUTHORS.txt.
+# This is the list of people who have contributed to this project,
+# and includes those not listed in AUTHORS.txt because they are not
+# copyright authors. For example, company employees may be listed
+# here because their company holds the copyright and is listed there.
 #
-# Names should be added as:
+# When adding J Random Contributor's name to this file, either J's
+# name or J's organization's name should be added to AUTHORS.txt
+#
+# Names should be added to this file as:
 # Name <email address>
 
-# Upstream Geist
 Andrés Briganti <info@briganti.works>
 Mateo Zaragoza <mateo@basement.studio>
 Basement.studio <hello@basement.studio>
@@ -14,6 +18,10 @@ José Rago <jose@basement.studio>
 Facundo Santana <facundo@basement.studio>
 Guido Ferreyra <guido@tipografia.com.ar>
 
-# Namche-Shadow
+# Namche Shadow derivative
+BTLG Holding GmbH <jodok@batlogg.com>
+Ruhm GmbH <office@ruhmetc.com>
 Michael Marte <michael@ruhmetc.com>
-Cursor AI <https://cursor.com>
+
+# Tooling assistance (not a copyright author)
+Cursor <https://cursor.com>

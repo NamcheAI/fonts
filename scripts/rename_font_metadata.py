@@ -1,0 +1,191 @@
+#!/usr/bin/env python3
+"""Rewrite Geist binary metadata for the Namche Shadow Sans derivative families.
+
+The outlines and metrics are intentionally left untouched. This script only
+updates naming, attribution, and CFF metadata in committed or freshly built
+OTF, TTF, and WOFF2 files.
+"""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+import re
+import sys
+
+from fontTools.ttLib import TTFont
+
+
+FAMILIES = {
+    "NamcheShadowSans": ("Namche Shadow Sans", "NamcheShadowSans"),
+    "NamcheShadowMono": ("Namche Shadow Mono", "NamcheShadowMono"),
+    "NamcheShadowPixel": ("Namche Shadow Pixel", "NamcheShadowPixel"),
+}
+FONT_SUFFIXES = {".otf", ".ttf", ".woff2"}
+PROJECT_URL = "https://github.com/NamcheAI/namche-shadow-font"
+DERIVATIVE_CREDIT = (
+    "Copyright 2026 BTLG Holding GmbH, in collaboration with Ruhm GmbH. "
+    "Namche Shadow Sans design by Michael Marte for Ruhm GmbH (https://ruhmetc.com)."
+)
+OLD_CREDITS = (
+    "Namche Shadow Sans suite design by Michael Marte for ruhm (https://ruhmetc.com).",
+    "Namche Shadow Sans design by Michael Marte for ruhm (https://ruhmetc.com).",
+    "Namche Shadow suite design by Michael Marte for ruhm (https://ruhmetc.com).",
+    "Namche Shadow design by Michael Marte for ruhm (https://ruhmetc.com).",
+)
+
+
+def family_for(path: Path) -> tuple[str, str]:
+    for part in path.parts:
+        if part in FAMILIES:
+            return FAMILIES[part]
+    raise ValueError(f"cannot infer Namche family from {path}")
+
+
+def replace_family_name(value: str, human: str, compact: str) -> str:
+    if human == "Namche Shadow Sans":
+        # Early Namche binaries used the suite name as the Sans family name.
+        # Match only the bare legacy name so this remains idempotent and never
+        # turns an already-correct family into "Namche Shadow Sans Sans".
+        value = re.sub(r"\bNamche Shadow(?! (?:Sans|Mono|Pixel))", human, value)
+        value = re.sub(r"\bNamcheShadow(?!Sans|Mono|Pixel)", compact, value)
+    replacements = (
+        ("Geist Pixel", human),
+        ("GeistPixel", compact),
+        ("Geist Mono", human),
+        ("GeistMono", compact),
+        ("Geist Sans", human),
+        ("GeistSans", compact),
+        ("Geist", human),
+    )
+    for old, new in replacements:
+        value = value.replace(old, new)
+    return value
+
+
+def replace_postscript_name(value: str, compact: str) -> str:
+    if compact == "NamcheShadowSans":
+        value = re.sub(r"\bNamcheShadow(?!Sans|Mono|Pixel)", compact, value)
+    for old in ("GeistPixel", "GeistMono", "GeistSans", "Geist"):
+        if old in value:
+            return value.replace(old, compact)
+    return value.replace(" ", "")
+
+
+def rewrite_name_table(font: TTFont, human: str, compact: str) -> None:
+    for record in font["name"].names:
+        try:
+            value = record.toUnicode()
+        except UnicodeDecodeError:
+            continue
+
+        if record.nameID == 0:
+            for old_credit in (*OLD_CREDITS, DERIVATIVE_CREDIT):
+                value = value.replace(old_credit, "")
+            value = f"{value.rstrip().rstrip('.')}. {DERIVATIVE_CREDIT}"
+        elif record.nameID == 8:
+            value = value.replace("Namche AI; based on ", "")
+            if not value.startswith("BTLG Holding GmbH; based on "):
+                value = f"BTLG Holding GmbH; based on {value}"
+        elif record.nameID == 9:
+            value = value.replace("Michael Marte (ruhm)", "Michael Marte (Ruhm GmbH)")
+            if "Michael Marte" not in value:
+                value = f"Michael Marte (Ruhm GmbH); {value}"
+        elif record.nameID == 11:
+            value = PROJECT_URL
+        elif record.nameID in {6, 25}:
+            value = replace_postscript_name(value, compact)
+        else:
+            value = replace_family_name(value, human, compact)
+
+        record.string = value.encode(record.getEncoding(), errors="replace")
+
+
+def rewrite_cff(font: TTFont, human: str, compact: str) -> None:
+    if "CFF " not in font:
+        return
+
+    cff = font["CFF "].cff
+    cff.fontNames[:] = [replace_postscript_name(name, compact) for name in cff.fontNames]
+    for top_dict in cff.topDictIndex:
+        if hasattr(top_dict, "FamilyName"):
+            top_dict.FamilyName = replace_family_name(top_dict.FamilyName, human, compact)
+        if hasattr(top_dict, "FullName"):
+            top_dict.FullName = replace_family_name(top_dict.FullName, human, compact)
+
+
+def font_files(root: Path) -> list[Path]:
+    if root.is_file():
+        return [root]
+    return sorted(path for path in root.rglob("*") if path.suffix.lower() in FONT_SUFFIXES)
+
+
+def rewrite(path: Path) -> None:
+    human, compact = family_for(path)
+    font = TTFont(path)
+    rewrite_name_table(font, human, compact)
+    rewrite_cff(font, human, compact)
+    font.save(path, reorderTables=False)
+    font.close()
+
+
+def check(path: Path) -> list[str]:
+    human, compact = family_for(path)
+    font = TTFont(path, lazy=True)
+    values = []
+    errors = []
+    for record in font["name"].names:
+        try:
+            value = record.toUnicode()
+        except UnicodeDecodeError:
+            continue
+        values.append((record.nameID, value))
+        if "Geist" in value and record.nameID != 0:
+            errors.append(f"{path}: name ID {record.nameID} still contains Geist: {value!r}")
+    family_values = [value for name_id, value in values if name_id in {1, 4, 6, 16, 25}]
+    if not family_values or not all(
+        human in value or compact in value for value in family_values
+    ):
+        errors.append(
+            f"{path}: expected family {human!r} in every family/full/PostScript name; "
+            f"found {family_values!r}"
+        )
+    if not any("Michael Marte" in value for name_id, value in values if name_id == 9):
+        errors.append(f"{path}: designer credit for Michael Marte is missing")
+    copyright_values = [value for name_id, value in values if name_id == 0]
+    if not any("Geist" in value and "Project Authors" in value for value in copyright_values):
+        errors.append(f"{path}: original Geist copyright notice is missing")
+    if not any("BTLG Holding GmbH" in value for value in copyright_values):
+        errors.append(f"{path}: BTLG Holding GmbH ownership notice is missing")
+    if not any("Michael Marte" in value and "Ruhm GmbH" in value for value in copyright_values):
+        errors.append(f"{path}: Namche Shadow Sans design credit is missing from copyright metadata")
+    font.close()
+    return errors
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("root", nargs="?", type=Path, default=Path("fonts"))
+    parser.add_argument("--check", action="store_true", help="validate without changing files")
+    args = parser.parse_args()
+
+    files = font_files(args.root)
+    if not files:
+        parser.error(f"no font files found below {args.root}")
+
+    if args.check:
+        errors = [error for path in files for error in check(path)]
+        if errors:
+            print("\n".join(errors), file=sys.stderr)
+            return 1
+        print(f"Validated {len(files)} Namche Shadow Sans font files")
+        return 0
+
+    for path in files:
+        rewrite(path)
+    print(f"Rewrote metadata in {len(files)} Namche Shadow Sans font files")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

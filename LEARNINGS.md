@@ -1,12 +1,12 @@
 # Learnings & findings (Namche RoundCorner)
 
-Operational notes from shipping **Namche-Shadow** (multi-tier) and **Namche-Shadow-Simple** (−40/−25) via Glyphs RoundCorner. Recipe details live in [`geist-font-main/scripts/NAMCHE_SHADOW.md`](geist-font-main/scripts/NAMCHE_SHADOW.md). Research on CLI / RoboFont / interactive apps: [`geist-font-main/scripts/ROUNDCORNER_OUTSIDE_GLYPHS.md`](geist-font-main/scripts/ROUNDCORNER_OUTSIDE_GLYPHS.md).
+Operational notes from shipping **Namche-Shadow** (multi-tier) and **Namche-Shadow-Simple** (−40/−25) via Glyphs RoundCorner. Recipe details live in [`scripts/NAMCHE_SHADOW.md`](scripts/NAMCHE_SHADOW.md). Research on CLI / RoboFont / interactive apps: [`scripts/ROUNDCORNER_OUTSIDE_GLYPHS.md`](scripts/ROUNDCORNER_OUTSIDE_GLYPHS.md).
 
 ## Production path
 
 - **Ship with Glyphs RoundCorner export filters**, not the experimental Python inner-fillet engine (`scripts/round_inner_corners.py`).
 - Filters live on **static instances** only. Keep RoundCorner **off** on the variable instance — otherwise Glyphs reports incompatible masters after contours diverge per weight.
-- Upstream/`geist-font-original/` stays **Geist** and immutable. Delivery family names (`Namche-Shadow`, `Namche-Shadow-Simple`) are set at export / name-table rewrite.
+- Upstream/`originals/geist/` stays **Geist** and immutable. Delivery family names (`Namche-Shadow`, `Namche-Shadow-Simple`) are set at export / name-table rewrite.
 
 ## Family naming (resolved 2026-08-11)
 
@@ -43,7 +43,7 @@ Accessibility / AppleScript automation of Glyphs UI from Cursor may be blocked; 
 Glyphs often exports as `Geist.glyphspackage` / `Geist-*.otf` regardless of intended Namche family.
 
 - **Always archive** under dated `exports/<Family>/_received/…` before overwriting delivery.
-- Never drop Downloads onto `geist-font-original/` or blindly onto `exports/Namche-Shadow/otf/`.
+- Never drop Downloads onto `originals/geist/` or blindly onto `exports/Namche-Shadow/otf/`.
 - Confirm recipe with outline fingerprints (or known-good hash) before renaming — multi-tier and −40/−25 can both arrive as `Geist-*.otf`.
 
 ## Verification checklist (after every GUI export)
@@ -68,7 +68,7 @@ Multi-tier is maintained in Glyphs / the paste file; the two-radius Python helpe
 ## Local delivery layout
 
 ```
-geist-font-main/exports/
+exports/
   Namche-Shadow/           # primary multi-tier + package + _received
   Namche-Shadow-Simple/    # −40/−25 + package + _received
 ```
