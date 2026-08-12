@@ -13,17 +13,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Version numbers 
 - Specimen `PREVIEW_FAMILIES` = Shadow + Shadow-Simple; installs under `~/Library/Fonts/Namche-Shadow{,-Simple}/`
 - Local preview app serves static `woff2` / `woff` / `otf` with a family switcher
 - Docs rewritten for RoundCorner delivery (`README.md`, `scripts/NAMCHE_SHADOW.md`, `VERSIONING.md`, `LEARNINGS.md`)
-- Scope clarified as Namche-only; attribution added for Michael Marte and Cursor AI
+- Scope clarified as Namche-only; attribution added for designer Michael Marte and tooling assistance
 
 ### Added
-- [`geist-font-main/scripts/ROUNDCORNER_OUTSIDE_GLYPHS.md`](geist-font-main/scripts/ROUNDCORNER_OUTSIDE_GLYPHS.md): research on RoundCorner outside Glyphs (CLI, RoboFont, FontLab) and interactive-app options
+- [`scripts/ROUNDCORNER_OUTSIDE_GLYPHS.md`](scripts/ROUNDCORNER_OUTSIDE_GLYPHS.md): research on RoundCorner outside Glyphs (CLI, RoboFont, FontLab) and interactive-app options
 - **Namche-Shadow-Simple** recipe: caps/figures **−40**, rest **−25**
 - Multi-tier paste file `scripts/roundcorner_shadow_filters.txt` + Glyphs export macro `glyphs_export_namche_shadow.py`
 - `scripts/apply_roundcorner_filters.py` with `--strong` / `--mild` radius args (Glyphs-native Filter string; Simple pairs)
 - Archive paths for manual Glyphs drops: `exports/Namche-*/_received/` (avoids clobbering identically named `Geist.glyphspackage` / `Geist-*.otf`)
 - [`LEARNINGS.md`](LEARNINGS.md): `glyphs-cli` RoundCorner failure, Downloads naming collisions, verification checklist
 - Web formats in local delivery folders (`woff/`, `woff2/`)
-- Immutable Geist Sans upright safecopy (`geist-font-original/`)
+- Immutable Geist Sans upright safecopy (`originals/geist/`)
 
 ### Deprecated
 - Python inner-fillet engine (`scripts/round_inner_corners.py`) — legacy experiment, not the shipping pipeline
@@ -33,4 +33,4 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Version numbers 
 ### Added
 - Initial public repository layout for Namche type work
 - Versioning policy and release checklist
-- Attribution for Michael Marte and Cursor AI as Namche-Shadow authors
+- Attribution for Michael Marte as designer; Cursor is credited only for tooling assistance

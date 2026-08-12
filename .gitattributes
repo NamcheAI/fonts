@@ -1,0 +1,4 @@
+# Glyphs source files contain serialized list data with significant trailing
+# spaces. Do not treat those records as ordinary prose whitespace errors.
+**/glyphs/*.glyph whitespace=-trailing-space
+**/fontinfo.plist whitespace=-trailing-space

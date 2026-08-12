@@ -1,0 +1,66 @@
+{
+  "name": "@namche/namche-shadow",
+  "version": "0.1.0",
+  "description": "Namche Shadow Sans, Namche Shadow Mono, and Namche Shadow Pixel for Next.js.",
+  "main": "./dist/font.js",
+  "type": "module",
+  "module": "./dist/font.js",
+  "types": "./font.d.ts",
+  "scripts": {
+    "version": "changeset version",
+    "release": "changeset publish"
+  },
+  "bugs": {
+    "url": "https://github.com/NamcheAI/namche-shadow-font/issues"
+  },
+  "homepage": "https://github.com/NamcheAI/namche-shadow-font",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NamcheAI/namche-shadow-font.git",
+    "directory": "packages/next"
+  },
+  "keywords": [
+    "namche shadow",
+    "namche shadow mono",
+    "namche shadow pixel",
+    "next.js font",
+    "geist derivative"
+  ],
+  "exports": {
+    "./font": {
+      "types": "./dist/font.d.ts",
+      "default": "./dist/font.js"
+    },
+    "./font/mono": {
+      "types": "./dist/mono.d.ts",
+      "default": "./dist/mono.js"
+    },
+    "./font/mono-non-variable": {
+      "types": "./dist/mono-non-variable.d.ts",
+      "default": "./dist/mono-non-variable.js"
+    },
+    "./font/sans": {
+      "types": "./dist/sans.d.ts",
+      "default": "./dist/sans.js"
+    },
+    "./font/sans-non-variable": {
+      "types": "./dist/sans-non-variable.d.ts",
+      "default": "./dist/sans-non-variable.js"
+    },
+    "./font/pixel": {
+      "types": "./dist/pixel.d.ts",
+      "default": "./dist/pixel.js"
+    }
+  },
+  "license": "OFL-1.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "next": ">=13.2.0"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.8"
+  },
+  "packageManager": "pnpm@10.34.5+sha512.a4ee05f2f73658255bd6a89859c065a45c28a57daefae2c893a168ee2b73168c37b91e83e57ea67654ad03f03031746430e8bce38e362e042605fb8abc80192e"
+}
