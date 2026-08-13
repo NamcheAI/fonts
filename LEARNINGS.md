@@ -5,14 +5,17 @@ Operational notes from shipping **Namche-Shadow** (multi-tier) and **Namche-Shad
 ## Production path
 
 - **Ship with Glyphs RoundCorner export filters**, not the experimental Python inner-fillet engine (`scripts/round_inner_corners.py`).
-- Filters live on **static instances** only. Keep RoundCorner **off** on the variable instance — otherwise Glyphs reports incompatible masters after contours diverge per weight.
+- Filters are the production mechanism for **static instances**. Do not ship a
+  variable font from those export filters: round the outlines first, make the
+  rounded masters interpolation-compatible, and only then build the VF. This
+  follow-up is tracked in issue #2.
 - Upstream/`originals/geist/` stays **Geist** and immutable. Delivery family names (`Namche-Shadow`, `Namche-Shadow-Simple`) are set at export / name-table rewrite.
 
 ## Family naming (resolved 2026-08-11)
 
 | Family | Role | Recipe |
 |--------|------|--------|
-| **Namche-Shadow** | Primary | Multi-tier (2026-08-11d): −60 exclude → −80 include → −60 (`A,V,Z,X,Germandbls`) → −50 (`k,x,v,w`) → −40 (`M,N,W,two,four,seven,six`) → −50 (`nine`) |
+| **Namche-Shadow** | Primary | Multi-tier: −60 exclude → −80 include → −60 (`A,V,Z,X,Germandbls`) → −50 (`k,x,v,w`) → −40 (`M,N,W,two,four,seven,six`) → −50 (`nine`) → −10 (`Yusbig-cy,yusbig-cy,mu,baht,peso`) |
 | **Namche-Shadow-Simple** | Prior recipe | Two-radius: caps/figures −40 include, rest −25 exclude |
 
 The temporary name **Namche-Darth** for the multi-tier stack is **retired**. Older docs/commits may still mention it.
@@ -78,4 +81,3 @@ exports/
 ## Package hygiene after renames
 
 When renaming families (e.g. temporary **Namche-Darth** → **Namche-Shadow**), rewrite not only `familyName` and OTF name tables but also instance `fileName` custom parameters (VF often keeps `Namche-Darth[wght]`). Strip trailing commas in RoundCorner `include:` / `exclude:` glyph lists — Glyphs paste can leave `six, ` which should be `six`.
-

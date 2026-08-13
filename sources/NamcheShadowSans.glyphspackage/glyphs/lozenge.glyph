@@ -3,7 +3,7 @@ glyphname = lozenge;
 layers = (
 {
 backgroundImage = {
-imagePath = "../Images/lozenge-Regular.tif";
+imagePath = "../Library/CloudStorage/GoogleDrive-michael@ruhmetc.com/Geteilte Ablagen/Projekte/Hagen & Partner/P297 Hagen Partner Branding/03_Entwurf/Schrift/Entwurf/geist-font-main/exports/Namche-Shadow/geist-font-main 2/Images/lozenge-Regular.tif";
 pos = (-58,0);
 };
 layerId = "EE2FFE84-06F1-4AFB-BBEC-60D09A436D14";
