@@ -55,8 +55,9 @@ one-time registry bootstrap is documented in
 ### Variable fonts
 
 Namche Shadow Sans, Mono, and Pixel all build as variable fonts. The Sans
-variable font is generated directly from Michael's rounded upright masters;
-the dedicated `@namche/namche-shadow/font/sans` npm export serves that file.
+variable fonts are generated directly from Michael's rounded upright and
+italic masters. The dedicated `@namche/namche-shadow/font/sans` npm export
+serves that file.
 Static Sans weights remain available through the default package export and
 `@namche/namche-shadow/font/sans-non-variable`.
 
