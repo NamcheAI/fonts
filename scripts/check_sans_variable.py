@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from fontTools.pens.areaPen import AreaPen
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
 
@@ -29,6 +30,13 @@ REPRESENTATIVE_GLYPHS = (
     "Uogonek",
     "uni0163",
 )
+
+
+def _glyph_area(font: TTFont, glyph_name: str) -> float:
+    glyph_set = font.getGlyphSet()
+    pen = AreaPen(glyph_set)
+    glyph_set[glyph_name].draw(pen)
+    return pen.value
 
 
 def check(root: Path) -> None:
@@ -67,13 +75,18 @@ def check(root: Path) -> None:
         if credit not in credits:
             raise ValueError(f"missing binary credit: {credit}")
 
-    for style, _ in WEIGHTS:
+    for style, weight in WEIGHTS:
         static = TTFont(root / "ttf" / f"NamcheShadowSans-{style}.ttf", recalcTimestamp=False)
         if "fvar" in static:
             raise ValueError(f"static unexpectedly contains fvar: {style}")
         missing = PARKED_GLYPHS - set(static.getGlyphOrder())
         if missing:
             raise ValueError(f"{style} static is missing parked VF glyphs: {sorted(missing)}")
+        instance = instantiateVariableFont(variable, {"wght": weight}, inplace=False, optimize=False)
+        variable_area = _glyph_area(instance, "O")
+        static_area = _glyph_area(static, "O")
+        if not variable_area or not static_area or variable_area * static_area <= 0:
+            raise ValueError(f"VF contour direction does not match the {style} static")
 
     for weight in range(150, 900, 100):
         instance = instantiateVariableFont(variable, {"wght": weight}, inplace=False, optimize=False)

@@ -213,6 +213,13 @@ def _normalized_contour(contour: Sequence[Segment], boundaries: Sequence[float])
         t1 = _t_for_arc_fraction(contour[segment_index], local_end)
         _, c1, c2, p3 = contour[segment_index].piece(t0, t1)
         result.append((c1, c2, p3))
+    # Arc-length bisection can leave the closing point a few trillionths of a
+    # unit away from the move point. ReverseContourPen then interprets that as
+    # an explicit closing line in only those masters, breaking compatibility.
+    # Snap the mathematically identical endpoint back to the exact start.
+    if result:
+        c1, c2, _ = result[-1]
+        result[-1] = c1, c2, contour[0].start
     return result
 
 
@@ -270,30 +277,47 @@ def _normalize_recordings(recordings: Sequence[Sequence[tuple[str, tuple]]], gly
 
 
 def _draw_compatible(recordings: Sequence[Sequence[tuple[str, tuple]]], glyph_name: str) -> list:
-    # Keep the final on-curve point even when it equals the start point.  Some
-    # rounded masters close the same contour explicitly and others implicitly;
-    # dropping only the coincident points would reintroduce a one-point mismatch.
-    pens = [TTGlyphPen(None, outputImpliedClosingLine=True) for _ in recordings]
-    pen = Cu2QuMultiPen(pens, max_err=1.0)
+    def convert(compatible: Sequence[Sequence[tuple[str, tuple]]]) -> list:
+        # Drop a closing point that coincides with the start. This also removes
+        # the explicit closing line that ReverseContourPen emits when reversing
+        # a CFF contour whose close was implicit, keeping all masters aligned.
+        pens = [TTGlyphPen(None, outputImpliedClosingLine=False) for _ in compatible]
+        # Glyphs' OTF export uses PostScript winding. Reverse every contour
+        # while converting to glyf so the VF follows the TrueType convention
+        # and matches the approved native-Glyphs static TTFs.
+        pen = Cu2QuMultiPen(pens, max_err=1.0, reverse_direction=True)
+        for operations in zip(*compatible):
+            names = {operation for operation, _ in operations}
+            if len(names) != 1:
+                raise ValueError(f"operation mismatch after normalization: {names}")
+            operation = operations[0][0]
+            arguments = [args for _, args in operations]
+            if operation == "moveTo":
+                pen.moveTo(arguments)
+            elif operation == "lineTo":
+                pen.lineTo(arguments)
+            elif operation == "curveTo":
+                pen.curveTo(arguments)
+            elif operation == "closePath":
+                pen.closePath()
+            else:
+                raise ValueError(operation)
+        return [output.glyph() for output in pens]
+
+    def topology(glyph) -> tuple:
+        return tuple(glyph.endPtsOfContours), tuple(flag & 1 for flag in glyph.flags)
+
     signatures = {_signature(recording) for recording in recordings}
     compatible = list(recordings) if len(signatures) == 1 else _normalize_recordings(recordings, glyph_name)
-    for operations in zip(*compatible):
-        names = {operation for operation, _ in operations}
-        if len(names) != 1:
-            raise ValueError(f"operation mismatch after normalization: {names}")
-        operation = operations[0][0]
-        arguments = [args for _, args in operations]
-        if operation == "moveTo":
-            pen.moveTo(arguments)
-        elif operation == "lineTo":
-            pen.lineTo(arguments)
-        elif operation == "curveTo":
-            pen.curveTo(arguments)
-        elif operation == "closePath":
-            pen.closePath()
-        else:
-            raise ValueError(operation)
-    return [output.glyph() for output in pens]
+    glyphs = convert(compatible)
+    if len({topology(glyph) for glyph in glyphs}) != 1:
+        # Reversing exposes implicit closing lines that can differ between
+        # otherwise signature-compatible CFF masters. Normalization makes the
+        # exact closing segment explicit in every master before retrying.
+        glyphs = convert(_normalize_recordings(recordings, glyph_name))
+    if len({topology(glyph) for glyph in glyphs}) != 1:
+        raise ValueError(f"incompatible TrueType topology for {glyph_name}")
+    return glyphs
 
 
 def _subset_parked(font: TTFont) -> None:

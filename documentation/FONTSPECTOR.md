@@ -20,11 +20,11 @@ change.
 | Pixel statics | `font_names/unsupported-style` | Circle, Grid, Line, Square, and Triangle are custom Pixel styles; the Google Fonts profile expects conventional weight/style names. This is expected for the current product model but would block a Google Fonts submission. |
 | Pixel statics | `meta/script_lang_tags` | The `meta` table does not declare `slng`. This is actionable metadata debt, but it predates the corrected Sans static drop. |
 
-Namche Shadow Sans VF currently has **no Fontspector failures**. Its 29 warning
+Namche Shadow Sans VF currently has **no Fontspector failures**. Its 28 warning
 results are the existing outline, glyph-reachability, language-shaping, WWS,
 vendor-ID, and sidebearing groups described below, plus:
 
-- `file_size`: the unsubsetted 970-glyph TTF is 1.1 MB (the shipped WOFF2 is
+- `file_size`: the unsubsetted 970-glyph TTF is 1.2 MB (the shipped WOFF2 is
   substantially smaller).
 - `mandatory_avar_table`: the `wght` axis intentionally uses a linear mapping.
 - `interpolation_issues`: heuristic kink/start-point findings in a small set of
