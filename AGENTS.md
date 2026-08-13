@@ -42,11 +42,16 @@ conventions.
   serialize spaces after commas).
 - `Yusbig-cy`, `yusbig-cy`, `mu`, `baht`, and `peso` must export in every
   static. Do not add `Remove Glyphs` to static instances.
-- Do not ship a Namche Shadow Sans variable font yet. Issue #2 tracks the
-  follow-up. A future variable font must round first, preserve the multi-tier
-  appearance, make the resulting outlines interpolation-compatible, and match
-  the statics at every named weight. Keep the five glyphs above parked from the
-  variable build until their masters match.
+- Build the upright variable font only from native Glyphs OTF exports whose
+  seven RoundCorner filters use the `compatible` option. Run
+  `make build-sans-variable GLYPHS_SANS_EXPORT=/path/to/export`; the builder
+  preserves the post-rounding curves, makes the remaining segmentation
+  compatible, converts all masters to TrueType curves together, and verifies
+  every named instance against its rounded master. Never enable the sharp
+  gftools/Glyphs VF as a substitute.
+- Keep `Yusbig-cy`, `yusbig-cy`, `mu`, `baht`, and `peso` parked from the
+  variable build until their rounded masters match. They must remain in every
+  static.
 - Namche Shadow Mono and Namche Shadow Pixel remain outline-identical renamed
   Geist derivatives until a separately reviewed design change says otherwise.
 

@@ -57,11 +57,12 @@ one-time registry bootstrap is documented in
 
 ### Static and variable fonts
 
-Namche Shadow Sans currently ships only as static Thin through Black weights.
-Those files are exported from Michael's multi-tier RoundCorner instances and
-are served by the default, `font/sans`, and `font/sans-non-variable` npm
-entry points. The Sans variable font is intentionally parked until the
-rounded outlines have been made interpolation-compatible after rounding.
+Namche Shadow Sans ships static Thin through Black weights plus an upright
+`wght` variable font. The approved static exports remain the visual source of
+truth. The default and `font/sans` npm entry points use the rounded upright VF
+with static italics; `font/sans-non-variable` uses statics throughout. Five
+glyphs whose rounded masters still differ are parked only from the VF and
+remain present in every static.
 
 Namche Shadow Mono and Namche Shadow Pixel retain their upstream-derived
 variable builds.
