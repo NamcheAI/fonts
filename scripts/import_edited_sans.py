@@ -31,6 +31,9 @@ peso
 ROUND_CORNER_PARAMETER = re.compile(
     r'\{\nname = Filter;\nvalue = "RoundCorner;[^"\n]+";\n\},?\n'
 )
+ROUND_CORNER_VALUE = re.compile(
+    r'(value = "RoundCorner;-?\d+;)(?:compatible;)?'
+)
 
 
 def balanced_assignment(text: str, marker: str) -> tuple[int, int, str]:
@@ -117,8 +120,16 @@ def normalized_instances(incoming_fontinfo: str) -> str:
     for block in blocks:
         if block.count(REMOVE_GLYPHS_PARAMETER) != 1:
             raise ValueError("each incoming instance must park the expected five glyphs")
-        if 'value = "RoundCorner;-10;include:Yusbig-cy, yusbig-cy, mu, baht, peso";' not in block:
+        if not re.search(
+            r'value = "RoundCorner;-10;(?:compatible;)?include:'
+            r'Yusbig-cy, yusbig-cy, mu, baht, peso";',
+            block,
+        ):
             raise ValueError("incoming instance is missing the five-glyph RoundCorner -10 tier")
+
+        roundcorner_count = len(ROUND_CORNER_PARAMETER.findall(block))
+        if roundcorner_count != 7:
+            raise ValueError(f"expected seven RoundCorner parameters, found {roundcorner_count}")
 
         if "type = variable;" in block:
             variable_count += 1
@@ -128,6 +139,12 @@ def normalized_instances(incoming_fontinfo: str) -> str:
                 raise ValueError(f"expected seven variable RoundCorner parameters, found {removed}")
         else:
             block = block.replace(REMOVE_GLYPHS_PARAMETER, "")
+            # A designer drop may come from the pre-VF recipe. Normalize every
+            # static tier so the next native OTF export remains a valid rounded
+            # source for build_sans_variable.py.
+            block = ROUND_CORNER_VALUE.sub(r"\1compatible;", block)
+            if block.count(";compatible;") != 7:
+                raise ValueError("failed to make all static RoundCorner filters compatible")
         normalized.append(block)
 
     if variable_count != 1:

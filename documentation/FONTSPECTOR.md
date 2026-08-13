@@ -20,6 +20,18 @@ change.
 | Pixel statics | `font_names/unsupported-style` | Circle, Grid, Line, Square, and Triangle are custom Pixel styles; the Google Fonts profile expects conventional weight/style names. This is expected for the current product model but would block a Google Fonts submission. |
 | Pixel statics | `meta/script_lang_tags` | The `meta` table does not declare `slng`. This is actionable metadata debt, but it predates the corrected Sans static drop. |
 
+Namche Shadow Sans VF currently has **no Fontspector failures**. Its 28 warning
+results are the existing outline, glyph-reachability, language-shaping, WWS,
+vendor-ID, and sidebearing groups described below, plus:
+
+- `file_size`: the unsubsetted 970-glyph TTF is 1.2 MB (the shipped WOFF2 is
+  substantially smaller).
+- `mandatory_avar_table`: the `wght` axis intentionally uses a linear mapping.
+- `interpolation_issues`: heuristic kink/start-point findings in a small set of
+  inherited rounded glyphs. The builder's structural and named-master checks,
+  intermediate-weight proof, and explicit visual inspection remain the release
+  gate for these shapes.
+
 ## Warning groups
 
 - Outline heuristics (`alignment_miss`, `colinear_vectors`, `jaggy_segments`,
@@ -35,8 +47,9 @@ change.
 - Design-consistency warnings such as math-sign widths and ligature carets need
   a designer/type-engineer decision before changing outlines or metrics.
 
-For the corrected Sans statics, the release-specific acceptance checks are
-stronger than the generic profile: every weight must contain the complete
-seven-tier RoundCorner result, `H` must retain the expected four rounded inner
-segments, the five tier-7 glyphs must be present, and no static may contain an
-`fvar` table.
+For Sans, the release-specific acceptance checks are stronger than the generic
+profile: every static weight must contain the complete seven-tier RoundCorner
+result, `H` must retain the expected four rounded inner segments, the five
+tier-7 glyphs must remain in all statics and stay parked from the VF, and no
+static may contain an `fvar` table. Run `scripts/check_sans_variable.py` and
+review `documentation/proof-rounded-sans-variable.png` for the VF.

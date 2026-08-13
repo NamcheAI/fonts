@@ -4,11 +4,11 @@ declare module "@namche/namche-shadow/font" {
   /**
    * @deprecated - Import from `@namche/namche-shadow/font/sans` instead.
    *
-   * Namche Shadow Sans static font family, with `className` and `variable` properties,
+   * Namche Shadow Sans font family, with `className` and `variable` properties,
    * meant to be attached to DOM elements via `className`
    *
-   * Uses Michael Marte's multi-tier static exports while the variable font is
-   * withheld pending interpolation-compatible rounded masters.
+   * Uses the rounded upright variable font and Michael Marte's multi-tier
+   * static italic exports.
    *
    * Included weights: 100 through 900
    * Included styles: normal and italic
@@ -29,7 +29,8 @@ declare module "@namche/namche-shadow/font" {
    * Namche Shadow Sans font, with `className` and `variable` properties,
    * meant to be attached to DOM elements via `className`
    *
-   * Alias for the same static upright and italic files as `NamcheShadowSans`.
+   * Uses static upright and italic files for browsers that do not support
+   * variable fonts.
    *
    * Included weights: 100 through 900
    * Included styles: normal and italic
@@ -135,8 +136,8 @@ declare module "@namche/namche-shadow/font/sans" {
    * Namche Shadow Sans font, with `className` and `variable` properties,
    * meant to be attached to DOM elements via `className`
    *
-   * Uses Michael Marte's multi-tier static exports while the variable font is
-   * withheld pending interpolation-compatible rounded masters.
+   * Uses the rounded upright variable font and Michael Marte's multi-tier
+   * static italic exports.
    *
    * Included weights: 100 through 900
    * Included styles: normal and italic
@@ -157,7 +158,8 @@ declare module "@namche/namche-shadow/font/sans-non-variable" {
    * Namche Shadow Sans font, with `className` and `variable` properties,
    * meant to be attached to DOM elements via `className`
    *
-   * Alias for the same static upright and italic files as `NamcheShadowSans`.
+   * Uses static upright and italic files for browsers that do not support
+   * variable fonts.
    *
    * Included weights: 100 through 900.
    * Included styles: normal and italic.

@@ -12,9 +12,10 @@ Custom type for Namche, based on Geist Sans with **Glyphs RoundCorner** export f
 | **Namche-Shadow** | multi-tier 7-filter (see docs) | Primary — specimen + `~/Library/Fonts` |
 | **Namche-Shadow-Simple** | caps/figures **−40**, rest **−25** | Prior two-radius recipe — specimen + `~/Library/Fonts` |
 
-The variable font stays **parked** until the rounded masters are
-interpolation-compatible. Upstream sources stay named Geist; delivery names
-are set at export.
+The original sharp variable export was parked until the rounded masters could
+be made interpolation-compatible. The upright VF is now built from compatible
+post-RoundCorner OTF exports; upstream sources stay named Geist and delivery
+names are set at export.
 
 The corrected `Namche-Shadow-Edited.glyphspackage` received from Michael Marte
 on 2026-08-13 is the visual source of truth for upright static exports. Its

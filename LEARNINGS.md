@@ -5,10 +5,11 @@ Operational notes from shipping **Namche-Shadow** (multi-tier) and **Namche-Shad
 ## Production path
 
 - **Ship with Glyphs RoundCorner export filters**, not the experimental Python inner-fillet engine (`scripts/round_inner_corners.py`).
-- Filters are the production mechanism for **static instances**. Do not ship a
-  variable font from those export filters: round the outlines first, make the
-  rounded masters interpolation-compatible, and only then build the VF. This
-  follow-up is tracked in issue #2.
+- Filters are the production mechanism for **static instances** and for the
+  post-rounding OTF masters used by the upright VF builder. Glyphs' own VF
+  export is still unsuitable because it skips those filters. Use the
+  `compatible` filter option, then `scripts/build_sans_variable.py` to align
+  the remaining rounded segmentation and build the VF.
 - Upstream/`originals/geist/` stays **Geist** and immutable. Delivery family names (`Namche-Shadow`, `Namche-Shadow-Simple`) are set at export / name-table rewrite.
 
 ## Family naming (resolved 2026-08-11)
@@ -36,7 +37,8 @@ Also: bad CLI Regular OTFs were ~71 KB vs ~92 KB for correctly rounded GUI e
 
 Filter **string format** still matters for packages that open correctly in Glyphs:
 
-- Prefer GUI-native: `RoundCorner;-60;include:A,…` (no `;1;` visual-correctness slot, no space after `:`).
+- Prefer GUI-native compatible form: `RoundCorner;-60;compatible;include:A,…`
+  (no `;1;` visual-correctness slot, no space after `:`).
 - Order for multi-tier stacks is significant — paste / apply in the documented order (see paste file).
 
 Accessibility / AppleScript automation of Glyphs UI from Cursor may be blocked; do not rely on it.

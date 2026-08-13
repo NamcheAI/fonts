@@ -8,6 +8,7 @@ help:
 	@echo
 	@echo "  make build:  Builds the fonts and places them in the fonts/ directory"
 	@echo "  make finalize-sans-statics GLYPHS_SANS_EXPORT=/path: merge native Glyphs OTF/TTF exports into the release files"
+	@echo "  make build-sans-variable GLYPHS_SANS_EXPORT=/path: build the rounded upright Sans VF from compatible Glyphs OTF exports"
 	@echo "  make test:   Tests the fonts with fontspector"
 	@echo "  make proof:  Creates HTML proof documents in the proof/ directory"
 	@echo "  make images: Creates PNG specimen images in the documentation/ directory"
@@ -44,13 +45,14 @@ build.stamp: venv venv-pixel sources/config-NamcheShadowSans.yaml $(SOURCES)
 	# Sans statics and Pixel statics/webfonts are native Glyphs exports committed
 	# to the repository. Restore them after the clean build so release and npm
 	# artifacts use the approved outlines.
-	git checkout -- fonts/NamcheShadowSans/otf fonts/NamcheShadowSans/ttf fonts/NamcheShadowSans/webfonts
+	git checkout -- fonts/NamcheShadowSans/otf fonts/NamcheShadowSans/ttf fonts/NamcheShadowSans/webfonts fonts/NamcheShadowSans/variable
 	git checkout -- fonts/NamcheShadowPixel/otf fonts/NamcheShadowPixel/ttf fonts/NamcheShadowPixel/webfonts
 	# Sans metadata was finalized with the native exports; leave those committed
 	# files byte-for-byte intact. Normalize only families generated in this run.
 	. venv/bin/activate; python3 scripts/rename_font_metadata.py fonts/NamcheShadowMono
 	. venv/bin/activate; python3 scripts/rename_font_metadata.py fonts/NamcheShadowPixel
 	. venv/bin/activate; python3 scripts/rename_font_metadata.py --check fonts
+	. venv/bin/activate; python3 scripts/check_sans_variable.py
 	$(MAKE) copy-npm-fonts
 	$(MAKE) create-release-zip
 	touch build.stamp
@@ -62,9 +64,18 @@ check-source-copies:
 	diff -qr --exclude=fontinfo.plist originals/geist/sources/GeistMono-Italic.glyphspackage sources/NamcheShadowMono-Italic.glyphspackage
 	diff -qr --exclude=fontinfo.plist originals/geist/sources/GeistPixel.glyphspackage sources/NamcheShadowPixel.glyphspackage
 
+check-sans-variable: venv
+	. venv/bin/activate; python3 scripts/check_sans_variable.py
+
 finalize-sans-statics: venv
 	test -n "$(GLYPHS_SANS_EXPORT)" || (echo "Set GLYPHS_SANS_EXPORT to a directory containing otf/ and ttf/." && exit 1)
 	. venv/bin/activate; python3 scripts/finalize_glyphs_statics.py --gftools fonts/NamcheShadowSans --glyphs "$(GLYPHS_SANS_EXPORT)" --output fonts/NamcheShadowSans
+	. venv/bin/activate; python3 scripts/rename_font_metadata.py --check fonts/NamcheShadowSans
+	$(MAKE) copy-npm-fonts
+
+build-sans-variable: venv
+	test -n "$(GLYPHS_SANS_EXPORT)" || (echo "Set GLYPHS_SANS_EXPORT to a directory containing compatible otf/ exports." && exit 1)
+	. venv/bin/activate; python3 scripts/build_sans_variable.py --glyphs-export "$(GLYPHS_SANS_EXPORT)" --statics fonts/NamcheShadowSans --output fonts/NamcheShadowSans
 	. venv/bin/activate; python3 scripts/rename_font_metadata.py --check fonts/NamcheShadowSans
 	$(MAKE) copy-npm-fonts
 
@@ -75,6 +86,7 @@ copy-npm-fonts:
 	mkdir -p packages/next/dist/fonts/namche-shadow-sans packages/next/dist/fonts/namche-shadow-mono packages/next/dist/fonts/namche-shadow-pixel
 	cp fonts/NamcheShadowSans/ttf/*.ttf packages/next/dist/fonts/namche-shadow-sans/
 	cp fonts/NamcheShadowSans/webfonts/*.woff2 packages/next/dist/fonts/namche-shadow-sans/
+	cp fonts/NamcheShadowSans/variable/*.ttf packages/next/dist/fonts/namche-shadow-sans/
 	cp fonts/NamcheShadowMono/ttf/*.ttf packages/next/dist/fonts/namche-shadow-mono/
 	cp fonts/NamcheShadowMono/webfonts/*.woff2 packages/next/dist/fonts/namche-shadow-mono/
 	cp fonts/NamcheShadowMono/variable/*.ttf packages/next/dist/fonts/namche-shadow-mono/
@@ -93,7 +105,9 @@ copy-npm-fonts:
 		mv NamcheShadowSans-BlackItalic.ttf NamcheShadowSans-UltraBlackItalic.ttf && \
 		mv NamcheShadowSans-BlackItalic.woff2 NamcheShadowSans-UltraBlackItalic.woff2 && \
 		mv NamcheShadowSans-ExtraBoldItalic.ttf NamcheShadowSans-BlackItalic.ttf && \
-		mv NamcheShadowSans-ExtraBoldItalic.woff2 NamcheShadowSans-BlackItalic.woff2
+		mv NamcheShadowSans-ExtraBoldItalic.woff2 NamcheShadowSans-BlackItalic.woff2 && \
+		mv 'NamcheShadowSans[wght].ttf' NamcheShadowSans-Variable.ttf && \
+		mv 'NamcheShadowSans[wght].woff2' NamcheShadowSans-Variable.woff2
 	cd packages/next/dist/fonts/namche-shadow-mono && \
 		mv NamcheShadowMono-ExtraLight.ttf NamcheShadowMono-UltraLight.ttf && \
 		mv NamcheShadowMono-ExtraLight.woff2 NamcheShadowMono-UltraLight.woff2 && \
@@ -128,6 +142,7 @@ venv-pixel/touchfile: Makefile
 
 test: build.stamp
 	which fontspector || (echo "fontspector not found. Please install it with 'cargo install fontspector'." && exit 1)
+	TOCHECK=$$(find fonts/NamcheShadowSans/variable -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowSansVF-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowSans.yaml,title=fontspector failures::The Sans variable-font QA check reported errors. Please check the generated report.'
 	TOCHECK=$$(find fonts/NamcheShadowSans/ttf -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowSans-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowSans.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
 	TOCHECK=$$(find fonts/NamcheShadowMono/variable -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowMonoVF-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowMono.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
 	TOCHECK=$$(find fonts/NamcheShadowMono/ttf -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowMono-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowMono.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
