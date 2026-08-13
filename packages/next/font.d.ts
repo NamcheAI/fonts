@@ -11,6 +11,7 @@ declare module "@namche/namche-shadow/font" {
    * 300kb—if you need to support browsers that {@link https://caniuse.com/variable-fonts cannot display variable fonts}
    *
    * Included weights: 100 through 900
+   * Included styles: normal and italic
    *
    * * {@link https://www.npmjs.com/package/@namche/namche-shadow?activeTab=readme#app-router View App Router Example}
    *
@@ -32,6 +33,7 @@ declare module "@namche/namche-shadow/font" {
    * 300kb—if you need to support browsers that {@link https://caniuse.com/variable-fonts cannot display variable fonts}
    *
    * Included weights: 100 through 900
+   * Included styles: normal and italic
    *
    * * {@link https://www.npmjs.com/package/@namche/namche-shadow?activeTab=readme#app-router View App Router Example}
    *
@@ -138,6 +140,7 @@ declare module "@namche/namche-shadow/font/sans" {
    * 300kb—if you need to support browsers that {@link https://caniuse.com/variable-fonts cannot display variable fonts}
    *
    * Included weights: 100 through 900
+   * Included styles: normal and italic
    *
    * * {@link https://www.npmjs.com/package/@namche/namche-shadow?activeTab=readme#app-router View App Router Example}
    *
@@ -159,6 +162,7 @@ declare module "@namche/namche-shadow/font/sans-non-variable" {
    * 300kb—if you need to support browsers that {@link https://caniuse.com/variable-fonts cannot display variable fonts}
    *
    * Included weights: 100 through 900.
+   * Included styles: normal and italic.
    *
    * * {@link https://www.npmjs.com/package/@namche/namche-shadow?activeTab=readme#app-router View App Router Example}
    *

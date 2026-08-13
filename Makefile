@@ -70,10 +70,20 @@ copy-npm-fonts:
 	cd packages/next/dist/fonts/namche-shadow-sans && \
 		mv NamcheShadowSans-ExtraLight.ttf NamcheShadowSans-UltraLight.ttf && \
 		mv NamcheShadowSans-ExtraLight.woff2 NamcheShadowSans-UltraLight.woff2 && \
-		mv NamcheShadowSans-ExtraBold.ttf NamcheShadowSans-UltraBlack.ttf && \
-		mv NamcheShadowSans-ExtraBold.woff2 NamcheShadowSans-UltraBlack.woff2 && \
+		mv NamcheShadowSans-ExtraLightItalic.ttf NamcheShadowSans-UltraLightItalic.ttf && \
+		mv NamcheShadowSans-ExtraLightItalic.woff2 NamcheShadowSans-UltraLightItalic.woff2 && \
+		mv NamcheShadowSans-Black.ttf NamcheShadowSans-UltraBlack.ttf && \
+		mv NamcheShadowSans-Black.woff2 NamcheShadowSans-UltraBlack.woff2 && \
+		mv NamcheShadowSans-ExtraBold.ttf NamcheShadowSans-Black.ttf && \
+		mv NamcheShadowSans-ExtraBold.woff2 NamcheShadowSans-Black.woff2 && \
+		mv NamcheShadowSans-BlackItalic.ttf NamcheShadowSans-UltraBlackItalic.ttf && \
+		mv NamcheShadowSans-BlackItalic.woff2 NamcheShadowSans-UltraBlackItalic.woff2 && \
+		mv NamcheShadowSans-ExtraBoldItalic.ttf NamcheShadowSans-BlackItalic.ttf && \
+		mv NamcheShadowSans-ExtraBoldItalic.woff2 NamcheShadowSans-BlackItalic.woff2 && \
 		mv 'NamcheShadowSans[wght].ttf' NamcheShadowSans-Variable.ttf && \
-		mv 'NamcheShadowSans[wght].woff2' NamcheShadowSans-Variable.woff2
+		mv 'NamcheShadowSans[wght].woff2' NamcheShadowSans-Variable.woff2 && \
+		mv 'NamcheShadowSans-Italic[wght].ttf' NamcheShadowSans-ItalicVariable.ttf && \
+		mv 'NamcheShadowSans-Italic[wght].woff2' NamcheShadowSans-ItalicVariable.woff2
 	cd packages/next/dist/fonts/namche-shadow-mono && \
 		mv NamcheShadowMono-ExtraLight.ttf NamcheShadowMono-UltraLight.ttf && \
 		mv NamcheShadowMono-ExtraLight.woff2 NamcheShadowMono-UltraLight.woff2 && \
