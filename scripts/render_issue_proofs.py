@@ -98,27 +98,26 @@ def render_issue_20() -> None:
     image, draw = canvas(
         20,
         "LEGACY NAME LENGTH",
-        "The strings are valid names, but some exceed old Windows / Word limits.",
+        "Variable aliases now fit; public family and STAT names stay complete.",
         1250,
     )
-    section(draw, 340, "Variable italic instances · family + style ≤ 32")
+    section(draw, 340, "Variable italic aliases · family + style ≤ 32")
     ttfont = TTFont(MONO_ITALIC_VF, lazy=True)
-    family = ttfont["name"].getDebugName(1) or "Namche Shadow Mono"
+    family = ttfont["name"].getBestFamilyName() or "Namche Shadow Mono"
     variable_names = []
     for instance in ttfont["fvar"].instances:
         style = ttfont["name"].getDebugName(instance.subfamilyNameID) or ""
-        full = f"{family} {style}"
-        if len(full) > 32:
-            variable_names.append(full)
+        if style in {"XLight Italic", "SemiBd Italic", "XBold Italic"}:
+            variable_names.append(f"{family} {style}")
     ttfont.close()
     specimen = MONO_DIR / "NamcheShadowMono-Italic.ttf"
     label = font(MONO_DIR / "NamcheShadowMono-Regular.ttf", 22)
     for index, value in enumerate(variable_names):
         y = 410 + index * 105
         draw.text((72, y), value, font=fit(specimen, value, 1220, 52), fill=TEXT)
-        draw.text((1325, y + 15), f"{len(value)} / 32", font=label, fill=RED)
+        draw.text((1325, y + 15), f"{len(value)} / 32", font=label, fill=GREEN)
 
-    section(draw, 750, "Static PostScript names · recommended ≤ 27")
+    section(draw, 750, "Static PostScript names · legal ≤ 63; guidance ≤ 27")
     samples = []
     for directory in (SANS_DIR, MONO_DIR):
         for path in sorted(directory.glob("*Italic.ttf")):
@@ -128,7 +127,13 @@ def render_issue_20() -> None:
     for index, value in enumerate(samples[:4]):
         y = 820 + index * 72
         draw.text((72, y), value, font=fit(specimen, value, 1190, 42), fill=TEXT)
-        draw.text((1325, y + 8), f"{len(value)} / 27", font=label, fill=RED)
+        draw.text((1325, y + 8), f"{len(value)} / 63", font=label, fill=GREEN)
+    draw.text(
+        (72, 1120),
+        "Kept canonical: shortening only name ID 6 creates hard Google-profile failures.",
+        font=label,
+        fill=MUTED,
+    )
     footer(draw, image.height, "Mono italic VF and Sans/Mono italic statics")
     image.save(OUTPUT / "issue-20-name-length.png", optimize=True)
 

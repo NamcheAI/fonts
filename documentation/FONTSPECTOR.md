@@ -16,7 +16,7 @@ change.
 | Family | Finding | Interpretation |
 | --- | --- | --- |
 | Sans and Mono statics | `repo/dirname_matches_nameid_1` | The Google Fonts profile interprets the distribution folder `ttf/` as a Google Fonts family directory. This repository deliberately uses the Geist-style `fonts/<Family>/ttf/` layout, so this is a profile/layout mismatch. |
-| Mono variable | `name/family_and_style_max_length` | Three italic instance names exceed the 32-character family-plus-style limit used by legacy Windows/Word environments. This is real metadata debt inherited from the renamed family. |
+| Mono italic variable | `googlefonts/fvar_instances` | The three Word-compatible named-instance aliases intentionally differ from the full STAT weight labels. This satisfies the universal 32-character family-and-style limit while preserving the public typographic names, but it would block a Google Fonts submission. |
 | Pixel statics | `font_names/unsupported-style` | Circle, Grid, Line, Square, and Triangle are custom Pixel styles; the Google Fonts profile expects conventional weight/style names. This is expected for the current product model but would block a Google Fonts submission. |
 
 Namche Shadow Sans VF currently has **no Fontspector failures**. Its 27 warning
@@ -51,3 +51,22 @@ result, `H` must retain the expected four rounded inner segments, the five
 tier-7 glyphs must remain in all statics and stay parked from the VF, and no
 static may contain an `fvar` table. Run `scripts/check_sans_variable.py` and
 review `documentation/proof-rounded-sans-variable.png` for the VF.
+
+## Naming compatibility
+
+The Mono italic variable font uses the legacy named-instance aliases `XLight
+Italic`, `SemiBd Italic`, and `XBold Italic`. Together with the unchanged
+public family name `Namche Shadow Mono`, each stays within the 32-character
+Windows/Word limit. The full weight labels remain available in the STAT table.
+Google Fonts requires `fvar` instance names to match those STAT labels exactly,
+so its distributor-specific `googlefonts/fvar_instances` check necessarily
+fails for this compatibility choice. The universal name-length check and the
+Google Fonts family-name consistency check both pass.
+
+Some Sans and Mono italic static PostScript names exceed Fontspector's
+recommended 27-character legacy guidance. They remain below the OpenType
+PostScript-name limit and deliberately keep the canonical
+`NamcheShadowSans`/`NamcheShadowMono` prefix: shortening only name ID 6 would
+make the binaries internally inconsistent and fail the Google Fonts naming
+check. Treat these warnings as an intentional compatibility tradeoff unless a
+separate legacy-named distribution is introduced.
