@@ -1,5 +1,12 @@
 # @namche/namche-shadow
 
+## 0.1.2
+
+### Patch Changes
+
+- 65bfe8b: Ship Namche Shadow Sans from Michael Marte's corrected multi-tier static
+  instances and withhold the unfinished Sans variable font.
+
 ## 0.1.1
 
 ### Patch Changes
