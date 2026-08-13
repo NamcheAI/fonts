@@ -9,10 +9,18 @@ Custom type for Namche, based on Geist Sans with **Glyphs RoundCorner** export f
 
 | Family | Recipe | Notes |
 |--------|--------|-------|
-| **Namche-Shadow** | multi-tier 6-filter (see docs) | Primary — specimen + `~/Library/Fonts` |
+| **Namche-Shadow** | multi-tier 7-filter (see docs) | Primary — specimen + `~/Library/Fonts` |
 | **Namche-Shadow-Simple** | caps/figures **−40**, rest **−25** | Prior two-radius recipe — specimen + `~/Library/Fonts` |
 
-Variable instance filters stay **disabled** (VF export incompatible after rounding). Upstream sources stay named Geist; delivery names are set at export.
+The variable font stays **parked** until the rounded masters are
+interpolation-compatible. Upstream sources stay named Geist; delivery names
+are set at export.
+
+The corrected `Namche-Shadow-Edited.glyphspackage` received from Michael Marte
+on 2026-08-13 is the visual source of truth for upright static exports. Its
+seven-tier RoundCorner stack is retained. `Yusbig-cy`, `yusbig-cy`, `mu`,
+`baht`, and `peso` ship in statics with the dedicated −10 tier and remain
+parked only in the variable instance until its masters are compatible.
 
 > The multi-tier family was briefly called **Namche-Darth**; that name is retired.
 

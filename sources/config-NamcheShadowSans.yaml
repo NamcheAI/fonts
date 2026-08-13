@@ -32,7 +32,13 @@ cleanUp: true
 # buildOTF: true
 # buildSmallCap: false
 
-buildVariable: true
+# Michael's RoundCorner filters run on static instance export, but Glyphs does
+# not apply them to variable-font exports. Keep the Sans VF out of releases
+# until the rounded master outlines have been made interpolation-compatible.
+buildVariable: false
+# Statics are exported in Glyphs 4 and committed because gftools does not run
+# the seven RoundCorner instance filters. See AGENTS.md.
+buildStatic: false
 
 # The next flags control autohinting.
 # autohintTTF: true
