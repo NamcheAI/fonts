@@ -91,7 +91,7 @@ def draw_banner(font_dir: Path, mark_svg: Path, output: Path, dark: bool) -> Non
     # copied, without using the original authors to endorse the derivative.
     small = ImageFont.truetype(mono_path, 26)
     draw.text((96, 2040), "OWNED BY BTLG HOLDING GMBH", font=small, fill=colors["muted"])
-    draw.text((96, 2085), "DESIGNED BY MICHAEL MARTE FOR RUHM GMBH", font=small, fill=colors["muted"])
+    draw.text((96, 2085), "DESIGNED BY MICHAEL MARTE FOR RUHM ETC.", font=small, fill=colors["muted"])
     draw.text((1475, 2085), "OFL-1.1 / v0.1.0", font=small, fill=colors["muted"])
 
     output.parent.mkdir(parents=True, exist_ok=True)
