@@ -22,6 +22,8 @@ FAMILIES = {
     "NamcheShadowPixel": ("Namche Shadow Pixel", "NamcheShadowPixel"),
 }
 FONT_SUFFIXES = {".otf", ".ttf", ".woff2"}
+VENDOR_ID = "NMCH"
+PIXEL_LANGUAGE_TAGS = {"dlng": "Latn", "slng": "Latn"}
 PROJECT_URL = "https://github.com/NamcheAI/namche-shadow-font"
 DERIVATIVE_CREDIT = (
     "Copyright 2026 BTLG Holding GmbH, in collaboration with Ruhm GmbH. "
@@ -114,6 +116,15 @@ def rewrite_cff(font: TTFont, human: str, compact: str) -> None:
             top_dict.FullName = replace_family_name(top_dict.FullName, human, compact)
 
 
+def rewrite_opentype_metadata(font: TTFont, human: str) -> None:
+    if "OS/2" in font:
+        font["OS/2"].achVendID = VENDOR_ID
+    if human == "Namche Shadow Pixel":
+        if "meta" not in font:
+            raise ValueError("Namche Shadow Pixel font is missing its meta table")
+        font["meta"].data.update(PIXEL_LANGUAGE_TAGS)
+
+
 def font_files(root: Path) -> list[Path]:
     if root.is_file():
         return [root]
@@ -125,6 +136,7 @@ def rewrite(path: Path) -> None:
     font = TTFont(path)
     rewrite_name_table(font, human, compact)
     rewrite_cff(font, human, compact)
+    rewrite_opentype_metadata(font, human)
     font.save(path, reorderTables=False)
     font.close()
 
@@ -159,6 +171,19 @@ def check(path: Path) -> list[str]:
         errors.append(f"{path}: BTLG Holding GmbH ownership notice is missing")
     if not any("Michael Marte" in value and "Ruhm GmbH" in value for value in copyright_values):
         errors.append(f"{path}: Namche Shadow Sans design credit is missing from copyright metadata")
+    if "OS/2" not in font or font["OS/2"].achVendID != VENDOR_ID:
+        actual_vendor = font["OS/2"].achVendID if "OS/2" in font else "<missing>"
+        errors.append(
+            f"{path}: expected OS/2 vendor ID {VENDOR_ID!r}; found {actual_vendor!r}"
+        )
+    if human == "Namche Shadow Pixel":
+        actual_tags = font["meta"].data if "meta" in font else {}
+        for tag, expected in PIXEL_LANGUAGE_TAGS.items():
+            if actual_tags.get(tag) != expected:
+                errors.append(
+                    f"{path}: expected meta {tag}={expected!r}; "
+                    f"found {actual_tags.get(tag)!r}"
+                )
     font.close()
     return errors
 

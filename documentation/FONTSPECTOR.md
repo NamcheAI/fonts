@@ -16,11 +16,10 @@ change.
 | Family | Finding | Interpretation |
 | --- | --- | --- |
 | Sans and Mono statics | `repo/dirname_matches_nameid_1` | The Google Fonts profile interprets the distribution folder `ttf/` as a Google Fonts family directory. This repository deliberately uses the Geist-style `fonts/<Family>/ttf/` layout, so this is a profile/layout mismatch. |
-| Mono variable | `name/family_and_style_max_length` | Some generated instance or PostScript names exceed the legacy 63-character limit. This is real metadata debt inherited from the renamed family and should be fixed before a Google Fonts submission. |
+| Mono variable | `name/family_and_style_max_length` | Three italic instance names exceed the 32-character family-plus-style limit used by legacy Windows/Word environments. This is real metadata debt inherited from the renamed family. |
 | Pixel statics | `font_names/unsupported-style` | Circle, Grid, Line, Square, and Triangle are custom Pixel styles; the Google Fonts profile expects conventional weight/style names. This is expected for the current product model but would block a Google Fonts submission. |
-| Pixel statics | `meta/script_lang_tags` | The `meta` table does not declare `slng`. This is actionable metadata debt, but it predates the corrected Sans static drop. |
 
-Namche Shadow Sans VF currently has **no Fontspector failures**. Its 28 warning
+Namche Shadow Sans VF currently has **no Fontspector failures**. Its 27 warning
 results are the existing outline, glyph-reachability, language-shaping, WWS,
 vendor-ID, and sidebearing groups described below, plus:
 
@@ -28,9 +27,8 @@ vendor-ID, and sidebearing groups described below, plus:
   substantially smaller).
 - `mandatory_avar_table`: the `wght` axis intentionally uses a linear mapping.
 - `interpolation_issues`: heuristic kink/start-point findings in a small set of
-  inherited rounded glyphs. The builder's structural and named-master checks,
-  intermediate-weight proof, and explicit visual inspection remain the release
-  gate for these shapes.
+  inherited rounded glyphs. The builder's structural and named-master checks
+  plus explicit visual inspection remain the release gate for these shapes.
 
 ## Warning groups
 
