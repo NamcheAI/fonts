@@ -38,6 +38,10 @@ Pixel variants are exported from `@namche/namche-shadow/font/pixel`:
 - `NamcheShadowPixelTriangle`
 - `NamcheShadowPixelLine`
 
+The Namche Shadow Sans design direction and implementation is done by
+[Michael Marte](https://github.com/fizzybubbele) for
+[Ruhm etc.](https://ruhmetc.com/).
+
 This package is adapted from Vercel's
 [`geist`](https://www.npmjs.com/package/geist) package. The fonts remain
 licensed under the [SIL Open Font License 1.1](../../OFL.txt); see the root
