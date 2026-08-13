@@ -35,7 +35,7 @@ jobs:
         id: zip-name
         shell: bash
         # Set the archive name to repo name + "-fonts" e.g "radiocanadafonts-fonts.zip"
-        run: echo "ZIP_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')-fonts" >> $GITHUB_ENV
+        run: echo "ZIP_NAME=${GITHUB_REPOSITORY#*/}-fonts" >> "$GITHUB_ENV"
 
       # If a new release is cut, use the release tag to auto-bump the source files
       # - name: Bump release
@@ -65,14 +65,14 @@ jobs:
         with:
           path: ./out
       - name: Archive artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ZIP_NAME }}
           path: |
             fonts
             out
       - name: Archive npm release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: namche-shadow-font-fonts-npm
           path: |
@@ -127,7 +127,7 @@ jobs:
         run: rm -rf ${{ env.ZIP_NAME }}/out
       - name: Set release file name
         shell: bash
-        run: echo "RELEASE_ZIP_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')-${{github.ref_name}}" >> $GITHUB_ENV
+        run: echo "RELEASE_ZIP_NAME=${GITHUB_REPOSITORY#*/}-${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
       - name: Create release bundle
         run: mv ${{ env.ZIP_NAME }} ${{ env.RELEASE_ZIP_NAME }}; zip -r ${{ env.RELEASE_ZIP_NAME }}.zip ${{ env.RELEASE_ZIP_NAME }}
       - name: Check for release
