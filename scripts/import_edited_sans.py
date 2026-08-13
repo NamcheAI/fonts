@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import re
 import shutil
 
 
@@ -27,6 +28,9 @@ peso
 );
 },
 """
+ROUND_CORNER_PARAMETER = re.compile(
+    r'\{\nname = Filter;\nvalue = "RoundCorner;[^"\n]+";\n\},?\n'
+)
 
 
 def balanced_assignment(text: str, marker: str) -> tuple[int, int, str]:
@@ -119,6 +123,9 @@ def normalized_instances(incoming_fontinfo: str) -> str:
         if "type = variable;" in block:
             variable_count += 1
             block = block.replace('value = "Namche-Shadow[wght]";', 'value = "NamcheShadowSans[wght]";')
+            block, removed = ROUND_CORNER_PARAMETER.subn("", block)
+            if removed != 7:
+                raise ValueError(f"expected seven variable RoundCorner parameters, found {removed}")
         else:
             block = block.replace(REMOVE_GLYPHS_PARAMETER, "")
         normalized.append(block)
