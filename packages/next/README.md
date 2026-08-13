@@ -24,10 +24,9 @@ export default function Layout({ children }) {
 }
 ```
 
-The primary Namche Shadow Sans export uses the customized static weights. A
-metadata-renamed variable fallback is present in the downloadable font archive
-for compatibility, but it still has upstream Geist outlines and is not used by
-the recommended npm export. Mono remains a true variable-font export.
+The dedicated Namche Shadow Sans and Mono exports use their variable fonts.
+Static weights remain available from `@namche/namche-shadow/font` and the
+`sans-non-variable` and `mono-non-variable` entry points.
 
 Pixel variants are exported from `@namche/namche-shadow/font/pixel`:
 

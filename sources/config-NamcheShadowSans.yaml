@@ -32,10 +32,7 @@ cleanUp: true
 # buildOTF: true
 # buildSmallCap: false
 
-# The custom rounded upright masters are not interpolation-compatible. Keep
-# shipping the preserved, metadata-renamed upstream-outline VF until the
-# Namche Shadow Sans masters are made compatible; static builds use these sources.
-buildVariable: false
+buildVariable: true
 
 # The next flags control autohinting.
 # autohintTTF: true
