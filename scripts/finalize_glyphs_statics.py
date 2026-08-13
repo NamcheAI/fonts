@@ -12,7 +12,9 @@ from __future__ import annotations
 
 import argparse
 from copy import deepcopy
+import os
 from pathlib import Path
+import tempfile
 
 from fontTools.pens.recordingPen import DecomposingRecordingPen, RecordingPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
@@ -114,6 +116,24 @@ def write_woff2(ttf_path: Path, output_path: Path) -> None:
     font.save(output_path, reorderTables=False)
 
 
+def validate_inputs(gftools_root: Path, glyphs_root: Path) -> None:
+    """Reject an incomplete export before any release file can be replaced."""
+    for weight in WEIGHTS:
+        for extension in ("otf", "ttf"):
+            base_path = font_path(gftools_root, extension, weight)
+            rendered_path = font_path(glyphs_root, extension, weight)
+            if not base_path.is_file():
+                raise FileNotFoundError(f"missing release base: {base_path}")
+            if not rendered_path.is_file():
+                raise FileNotFoundError(f"missing Glyphs export: {rendered_path}")
+            base = TTFont(base_path, recalcTimestamp=False)
+            rendered = TTFont(rendered_path, recalcTimestamp=False)
+            assert_matching_fonts(base, rendered, rendered_path)
+            assert_roundcorner_output(rendered, rendered_path)
+            base.close()
+            rendered.close()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--gftools", type=Path, required=True, help="gftools NamcheShadowSans root")
@@ -121,18 +141,30 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True, help="final NamcheShadowSans root")
     args = parser.parse_args()
 
-    flattened_total = 0
-    for weight in WEIGHTS:
-        for extension in ("otf", "ttf"):
-            flattened_total += finalize_font(
-                font_path(args.gftools, extension, weight),
-                font_path(args.glyphs, extension, weight),
-                font_path(args.output, extension, weight),
+    validate_inputs(args.gftools, args.glyphs)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="namche-sans-statics-", dir=args.output.parent) as directory:
+        staging = Path(directory)
+        flattened_total = 0
+        for weight in WEIGHTS:
+            for extension in ("otf", "ttf"):
+                flattened_total += finalize_font(
+                    font_path(args.gftools, extension, weight),
+                    font_path(args.glyphs, extension, weight),
+                    font_path(staging, extension, weight),
+                )
+            write_woff2(
+                font_path(staging, "ttf", weight),
+                font_path(staging, "woff2", weight),
             )
-        write_woff2(
-            font_path(args.output, "ttf", weight),
-            font_path(args.output, "woff2", weight),
-        )
+
+        # Every input and staged output has succeeded. Replace only the approved
+        # upright release files; existing italic files remain untouched.
+        for weight in WEIGHTS:
+            for extension in ("otf", "ttf", "woff2"):
+                destination = font_path(args.output, extension, weight)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                os.replace(font_path(staging, extension, weight), destination)
 
     print(f"Finalized {len(WEIGHTS)} static weights; flattened {flattened_total} nested glyphs")
 

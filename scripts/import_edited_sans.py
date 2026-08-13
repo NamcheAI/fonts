@@ -138,23 +138,28 @@ def import_package(incoming: Path, target: Path) -> None:
         extra = sorted(incoming_names - target_names)
         raise ValueError(f"glyph sets differ; missing={missing}, extra={extra}")
 
-    for name in sorted(incoming_names):
-        shutil.copyfile(incoming_glyphs / name, target_glyphs / name)
-    shutil.copyfile(incoming / "order.plist", target / "order.plist")
-
-    uppercase_yus = target_glyphs / "Y_usbig-cy.glyph"
-    yus_text = uppercase_yus.read_text()
+    # Validate and normalize the complete incoming package before the first
+    # maintained source file is replaced. A rejected drop must leave no hybrid
+    # package behind.
+    incoming_fontinfo = (incoming / "fontinfo.plist").read_text()
+    instances = normalized_instances(incoming_fontinfo)
+    incoming_yus = incoming_glyphs / "Y_usbig-cy.glyph"
+    yus_text = incoming_yus.read_text()
     if yus_text.count("export = 0;\n") != 1:
         raise ValueError("expected incoming Yusbig-cy to contain exactly one disabled export flag")
-    uppercase_yus.write_text(yus_text.replace("export = 0;\n", ""))
+    normalized_yus = yus_text.replace("export = 0;\n", "")
+    order_text = (incoming / "order.plist").read_text()
 
     target_fontinfo_path = target / "fontinfo.plist"
     target_fontinfo = target_fontinfo_path.read_text()
-    incoming_fontinfo = (incoming / "fontinfo.plist").read_text()
     start, end, _ = balanced_assignment(target_fontinfo, "instances = (")
-    target_fontinfo_path.write_text(
-        target_fontinfo[:start] + normalized_instances(incoming_fontinfo) + target_fontinfo[end:]
-    )
+    normalized_fontinfo = target_fontinfo[:start] + instances + target_fontinfo[end:]
+
+    for name in sorted(incoming_names):
+        shutil.copyfile(incoming_glyphs / name, target_glyphs / name)
+    (target_glyphs / "Y_usbig-cy.glyph").write_text(normalized_yus)
+    (target / "order.plist").write_text(order_text)
+    target_fontinfo_path.write_text(normalized_fontinfo)
 
 
 def main() -> None:
