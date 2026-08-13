@@ -1,0 +1,10 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /packages/next
+    schedule:
+      interval: weekly
+    groups:
+      npm-development-dependencies:
+        dependency-type: development
+
