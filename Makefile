@@ -37,10 +37,9 @@ build.stamp: venv venv-pixel sources/config-NamcheShadowSans.yaml $(SOURCES)
 	done
 	# Namche Shadow Pixel's static instances and webfonts are hand-exported from
 	# Glyphs and committed (buildStatic:false means gftools only builds the
-	# variable). The Sans variable files remain preserved upstream-outline
-	# fallbacks until the rounded masters are compatible. Restore both sets after
-	# the clean build so the release zip and npm package remain complete.
-	git checkout -- fonts/NamcheShadowSans/variable 'fonts/NamcheShadowSans/webfonts/NamcheShadowSans[wght].woff2' 'fonts/NamcheShadowSans/webfonts/NamcheShadowSans-Italic[wght].woff2' fonts/NamcheShadowPixel/otf fonts/NamcheShadowPixel/ttf fonts/NamcheShadowPixel/webfonts
+	# variable). Restore those sets after the clean build so the release zip and
+	# npm package remain complete.
+	git checkout -- fonts/NamcheShadowPixel/otf fonts/NamcheShadowPixel/ttf fonts/NamcheShadowPixel/webfonts
 	. venv/bin/activate; python3 scripts/rename_font_metadata.py fonts
 	. venv/bin/activate; python3 scripts/rename_font_metadata.py --check fonts
 	$(MAKE) copy-npm-fonts

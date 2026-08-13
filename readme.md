@@ -52,15 +52,13 @@ The npm release workflow is prepared for token-free OIDC publishing. Its
 one-time registry bootstrap is documented in
 [`documentation/TRUSTED_PUBLISHING.md`](documentation/TRUSTED_PUBLISHING.md).
 
-### Variable-font limitation
+### Variable fonts
 
-Michael's rounded upright masters are not currently interpolation-compatible.
-The static Namche Shadow Sans files use the modified outlines; the Namche Shadow Sans
-variable file is a metadata-renamed upstream-outline fallback. Mono and Pixel
-remain variable-buildable. Do not treat the sans variable file as a visual
-match for the static Shadow family until the master compatibility work lands.
-The `@namche/namche-shadow/font/sans` npm export therefore uses the customized
-static weights; it does not serve the fallback variable file.
+Namche Shadow Sans, Mono, and Pixel all build as variable fonts. The Sans
+variable font is generated directly from Michael's rounded upright masters;
+the dedicated `@namche/namche-shadow/font/sans` npm export serves that file.
+Static Sans weights remain available through the default package export and
+`@namche/namche-shadow/font/sans-non-variable`.
 
 ## Credits
 
