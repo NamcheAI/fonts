@@ -1,6 +1,6 @@
 {
   "name": "@namche/namche-shadow",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Namche Shadow Sans, Namche Shadow Mono, and Namche Shadow Pixel for Next.js.",
   "main": "./dist/font.js",
   "type": "module",

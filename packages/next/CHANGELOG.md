@@ -1,5 +1,14 @@
 # @namche/namche-shadow
 
+## 0.2.0
+
+### Minor Changes
+
+- 327248b: Ship the true rounded Namche Shadow Sans upright variable font and use it in
+  the default and `font/sans` Next.js entry points. Static italic files remain in
+  those entry points, while `font/sans-non-variable` continues to provide only
+  static files.
+
 ## 0.1.2
 
 ### Patch Changes
