@@ -24,6 +24,13 @@ FAMILIES = {
 FONT_SUFFIXES = {".otf", ".ttf", ".woff2"}
 VENDOR_ID = "NMCH"
 PIXEL_LANGUAGE_TAGS = {"dlng": "Latn", "slng": "Latn"}
+VARIABLE_INSTANCE_NAME_ALIASES = {
+    "Namche Shadow Mono": {
+        "ExtraLight Italic": "XLight Italic",
+        "SemiBold Italic": "SemiBd Italic",
+        "ExtraBold Italic": "XBold Italic",
+    },
+}
 PROJECT_URL = "https://github.com/NamcheAI/namche-shadow-font"
 DERIVATIVE_CREDIT = (
     "Copyright 2026 BTLG Holding GmbH, in collaboration with Ruhm GmbH. "
@@ -102,6 +109,20 @@ def rewrite_name_table(font: TTFont, human: str, compact: str) -> None:
 
         record.string = value.encode(record.getEncoding(), errors="replace")
 
+    aliases = VARIABLE_INSTANCE_NAME_ALIASES.get(human, {})
+    if "fvar" in font and aliases:
+        names = font["name"]
+        for instance in font["fvar"].instances:
+            current = names.getDebugName(instance.subfamilyNameID) or ""
+            alias = aliases.get(current)
+            if not alias:
+                continue
+            for record in names.names:
+                if record.nameID == instance.subfamilyNameID:
+                    record.string = alias.encode(
+                        record.getEncoding(), errors="replace"
+                    )
+
 
 def rewrite_cff(font: TTFont, human: str, compact: str) -> None:
     if "CFF " not in font:
@@ -133,7 +154,7 @@ def font_files(root: Path) -> list[Path]:
 
 def rewrite(path: Path) -> None:
     human, compact = family_for(path)
-    font = TTFont(path)
+    font = TTFont(path, recalcTimestamp=False)
     rewrite_name_table(font, human, compact)
     rewrite_cff(font, human, compact)
     rewrite_opentype_metadata(font, human)
@@ -164,6 +185,32 @@ def check(path: Path) -> list[str]:
         )
     if not any("Michael Marte" in value for name_id, value in values if name_id == 9):
         errors.append(f"{path}: designer credit for Michael Marte is missing")
+    if "fvar" in font:
+        family = (
+            font["name"].getBestFamilyName()
+            or font["name"].getDebugName(1)
+            or ""
+        )
+        for instance in font["fvar"].instances:
+            style = font["name"].getDebugName(instance.subfamilyNameID) or ""
+            combined = f"{family} {style}"
+            if len(combined) > 32:
+                errors.append(
+                    f"{path}: variable instance name exceeds 32 characters: "
+                    f"{combined!r}"
+                )
+        aliases = VARIABLE_INSTANCE_NAME_ALIASES.get(human, {})
+        if aliases and "STAT" in font:
+            stat_names = {
+                font["name"].getDebugName(axis_value.ValueNameID)
+                for axis_value in font["STAT"].table.AxisValueArray.AxisValue
+            }
+            full_stat_styles = {style.removesuffix(" Italic") for style in aliases}
+            missing = sorted(full_stat_styles - stat_names)
+            if missing:
+                errors.append(
+                    f"{path}: full public STAT style names are missing: {missing!r}"
+                )
     copyright_values = [value for name_id, value in values if name_id == 0]
     if not any("Geist" in value and "Project Authors" in value for value in copyright_values):
         errors.append(f"{path}: original Geist copyright notice is missing")
