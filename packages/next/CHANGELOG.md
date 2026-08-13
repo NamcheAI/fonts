@@ -1,5 +1,13 @@
 # @namche/namche-shadow
 
+## 0.1.1
+
+### Patch Changes
+
+- b33e7d9: Restore the intended weight-specific `0` outlines in Namche Shadow Sans.
+- e0d5ce6: Apply the Namche Shadow inner-corner treatment to the Sans italic static and
+  variable fonts.
+
 ## 0.1.0
 
 ### Initial Namche release
