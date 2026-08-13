@@ -24,9 +24,10 @@ export default function Layout({ children }) {
 }
 ```
 
-The dedicated Namche Shadow Sans and Mono exports use their variable fonts.
-Static weights remain available from `@namche/namche-shadow/font` and the
-`sans-non-variable` and `mono-non-variable` entry points.
+The dedicated Namche Shadow Sans export includes its upright and italic
+variable fonts. Static upright and italic Sans weights remain available from
+`@namche/namche-shadow/font` and the `sans-non-variable` entry point. The Mono
+exports currently provide upright styles.
 
 Pixel variants are exported from `@namche/namche-shadow/font/pixel`:
 
