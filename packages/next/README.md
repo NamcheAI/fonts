@@ -24,10 +24,11 @@ export default function Layout({ children }) {
 }
 ```
 
-The dedicated Namche Shadow Sans export includes its upright and italic
-variable fonts. Static upright and italic Sans weights remain available from
-`@namche/namche-shadow/font` and the `sans-non-variable` entry point. The Mono
-exports currently provide upright styles.
+The default export, `font/sans`, and `font/sans-non-variable` all use the
+static upright and italic Namche Shadow Sans weights. The upright Thin through
+Black files are Michael's multi-tier RoundCorner exports. The Sans variable
+font is intentionally withheld until its rounded outlines are
+interpolation-compatible. The Mono exports currently provide upright styles.
 
 Pixel variants are exported from `@namche/namche-shadow/font/pixel`:
 

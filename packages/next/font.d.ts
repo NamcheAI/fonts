@@ -4,11 +4,11 @@ declare module "@namche/namche-shadow/font" {
   /**
    * @deprecated - Import from `@namche/namche-shadow/font/sans` instead.
    *
-   * Namche Shadow Sans variable font, with `className` and `variable` properties,
+   * Namche Shadow Sans static font family, with `className` and `variable` properties,
    * meant to be attached to DOM elements via `className`
    *
-   * `NamcheShadowSans`—approximately 30kb—is preferred in almost all cases. Use `NamcheShadowSansNonVariable`—approximately
-   * 300kb—if you need to support browsers that {@link https://caniuse.com/variable-fonts cannot display variable fonts}
+   * Uses Michael Marte's multi-tier static exports while the variable font is
+   * withheld pending interpolation-compatible rounded masters.
    *
    * Included weights: 100 through 900
    * Included styles: normal and italic
@@ -29,8 +29,7 @@ declare module "@namche/namche-shadow/font" {
    * Namche Shadow Sans font, with `className` and `variable` properties,
    * meant to be attached to DOM elements via `className`
    *
-   * `NamcheShadowSans`—approximately 30kb—is preferred in almost all cases. Use `NamcheShadowSansNonVariable`—approximately
-   * 300kb—if you need to support browsers that {@link https://caniuse.com/variable-fonts cannot display variable fonts}
+   * Alias for the same static upright and italic files as `NamcheShadowSans`.
    *
    * Included weights: 100 through 900
    * Included styles: normal and italic
@@ -136,8 +135,8 @@ declare module "@namche/namche-shadow/font/sans" {
    * Namche Shadow Sans font, with `className` and `variable` properties,
    * meant to be attached to DOM elements via `className`
    *
-   * `NamcheShadowSans`—approximately 30kb—is preferred in almost all cases. Use `NamcheShadowSansNonVariable`—approximately
-   * 300kb—if you need to support browsers that {@link https://caniuse.com/variable-fonts cannot display variable fonts}
+   * Uses Michael Marte's multi-tier static exports while the variable font is
+   * withheld pending interpolation-compatible rounded masters.
    *
    * Included weights: 100 through 900
    * Included styles: normal and italic
@@ -158,8 +157,7 @@ declare module "@namche/namche-shadow/font/sans-non-variable" {
    * Namche Shadow Sans font, with `className` and `variable` properties,
    * meant to be attached to DOM elements via `className`
    *
-   * `NamcheShadowSans`—approximately 30kb—is preferred in almost all cases. Use `NamcheShadowSansNonVariable`—approximately
-   * 300kb—if you need to support browsers that {@link https://caniuse.com/variable-fonts cannot display variable fonts}
+   * Alias for the same static upright and italic files as `NamcheShadowSans`.
    *
    * Included weights: 100 through 900.
    * Included styles: normal and italic.

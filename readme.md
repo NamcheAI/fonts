@@ -30,6 +30,9 @@ make test
 make proof
 ```
 
+The current Fontspector baseline and triage guidance are documented in
+[`documentation/FONTSPECTOR.md`](documentation/FONTSPECTOR.md).
+
 The Namche Shadow Sans RoundCorner workflow still requires Glyphs for final design
 exports. See [`scripts/NAMCHE_SHADOW.md`](scripts/NAMCHE_SHADOW.md) and
 [`LEARNINGS.md`](LEARNINGS.md) before producing a release.
@@ -39,7 +42,7 @@ exports. See [`scripts/NAMCHE_SHADOW.md`](scripts/NAMCHE_SHADOW.md) and
 | Path | Purpose |
 | --- | --- |
 | `sources/` | Namche-named Glyphs sources and gftools builder configs |
-| `fonts/` | OTF, TTF, variable, and WOFF2 distributions |
+| `fonts/` | OTF, TTF, and WOFF2 distributions; variable builds where release-ready |
 | `originals/geist/` | Immutable safecopy of the original Geist sources |
 | `scripts/` | Upstream build helpers and Namche Shadow Sans design tooling |
 | `packages/next/` | Next.js package, adapted from the upstream package |
@@ -52,14 +55,16 @@ The npm release workflow is prepared for token-free OIDC publishing. Its
 one-time registry bootstrap is documented in
 [`documentation/TRUSTED_PUBLISHING.md`](documentation/TRUSTED_PUBLISHING.md).
 
-### Variable fonts
+### Static and variable fonts
 
-Namche Shadow Sans, Mono, and Pixel all build as variable fonts. The Sans
-variable fonts are generated directly from Michael's rounded upright and
-italic masters. The dedicated `@namche/namche-shadow/font/sans` npm export
-serves both files.
-Static upright and italic Sans weights remain available through the default
-package export and `@namche/namche-shadow/font/sans-non-variable`.
+Namche Shadow Sans currently ships only as static Thin through Black weights.
+Those files are exported from Michael's multi-tier RoundCorner instances and
+are served by the default, `font/sans`, and `font/sans-non-variable` npm
+entry points. The Sans variable font is intentionally parked until the
+rounded outlines have been made interpolation-compatible after rounding.
+
+Namche Shadow Mono and Namche Shadow Pixel retain their upstream-derived
+variable builds.
 
 ## Credits
 

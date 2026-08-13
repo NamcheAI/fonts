@@ -23,8 +23,16 @@ On every **static** instance (Thin → Black) — **2026-08-11d**:
 4. `RoundCorner;-50;include:k, x, v, w`
 5. `RoundCorner;-40;include:M, N, W, two, four, seven, six`
 6. `RoundCorner;-50;include:nine`
+7. `RoundCorner;-10;include:Yusbig-cy, yusbig-cy, mu, baht, peso`
 
-**Variable instance:** RoundCorner filters **off** (strip entirely). Glyphs reports incompatible masters when filters reshape contours for VF.
+The five glyphs in tier 7 export in every static instance; `Remove Glyphs`
+must not be present on statics.
+
+**Variable font:** parked until issue #2 is resolved. Glyphs export filters do
+not produce a usable VF. A future VF must be built from rounded,
+interpolation-compatible outlines that reproduce this complete multi-tier
+static stack. `Yusbig-cy`, `yusbig-cy`, `mu`, `baht`, and `peso` remain removed
+from the variable instance until their masters match.
 
 ### Namche-Shadow-Simple
 
@@ -58,10 +66,16 @@ python3 scripts/apply_roundcorner_filters.py --strong -40 --mild -25
 ## Export from Glyphs
 
 1. Open the family package (`exports/Namche-Shadow/Namche-Shadow.glyphspackage` or Simple package / `sources/…`).
-2. Confirm static RoundCorner filters; VF has none.
+2. Confirm the seven static RoundCorner filters and verify the five tier-7
+   glyphs are not removed.
 3. Export static OTFs (Thin → Black). Files may still be named `Geist-*.otf` — rename / fix name tables to **Namche-Shadow** or **Namche-Shadow-Simple** before delivery.
-4. Optionally export the variable font **without** RoundCorner filters.
-5. Build `woff` / `woff2` into the matching `exports/<Family>/` folder.
+4. Do not export or ship the primary variable font until issue #2 is complete.
+5. For Namche Shadow Sans, finalize the native OTF/TTF outputs against the
+   maintained release tables and generate WOFF2/npm assets:
+
+   ```sh
+   make finalize-sans-statics GLYPHS_SANS_EXPORT=/path/to/NamcheShadowSans
+   ```
 
 ## Local specimen (static files)
 
