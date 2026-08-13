@@ -63,9 +63,9 @@ package export and `@namche/namche-shadow/font/sans-non-variable`.
 
 ## Credits
 
-Namche Shadow is owned by BTLG Holding GmbH. The Namche Shadow Sans design
-direction and inner-corner treatment are by Michael Marte for
-[Ruhm GmbH](https://ruhmetc.com).
+The Namche Shadow Sans design direction and implementation is done by
+[Michael Marte](https://github.com/fizzybubbele) for
+[Ruhm etc.](https://ruhmetc.com/).
 
 The suite is derived from Geist, created by Vercel in collaboration with
 Basement Studio, Andrés Briganti, Mateo Zaragoza, and the other contributors
