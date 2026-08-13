@@ -30,8 +30,10 @@ make test
 make proof
 ```
 
-The Namche Shadow Sans RoundCorner workflow still requires Glyphs for final design
-exports. See [`scripts/NAMCHE_SHADOW.md`](scripts/NAMCHE_SHADOW.md) and
+The Namche Shadow Sans RoundCorner look is **static Glyphs exports only**
+(multi-tier filter stack). Variable Sans is out of scope. See
+[`documentation/NAMCHE_SHADOW_STATICS.md`](documentation/NAMCHE_SHADOW_STATICS.md),
+[`scripts/NAMCHE_SHADOW.md`](scripts/NAMCHE_SHADOW.md), and
 [`LEARNINGS.md`](LEARNINGS.md) before producing a release.
 
 ## Repository layout
@@ -54,11 +56,16 @@ one-time registry bootstrap is documented in
 
 ### Variable fonts
 
-Namche Shadow Sans, Mono, and Pixel all build as variable fonts. The Sans
-variable font is generated directly from Michael's rounded upright masters;
-the dedicated `@namche/namche-shadow/font/sans` npm export serves that file.
-Static Sans weights remain available through the default package export and
-`@namche/namche-shadow/font/sans-non-variable`.
+**Namche Shadow Sans:** use **static** weights exported from Glyphs with the
+multi-tier RoundCorner stack. RoundCorner does not run on variable export
+(incompatible masters). Do not treat a `fontmake` / `make build` Sans VF as
+the designed family. Packaging should use
+`@namche/namche-shadow/font/sans-non-variable` (or other static entry points)
+until that is documented otherwise. Full scope:
+[`documentation/NAMCHE_SHADOW_STATICS.md`](documentation/NAMCHE_SHADOW_STATICS.md).
+
+**Namche Shadow Mono** and **Pixel** may still ship as variable fonts: those
+families keep upstream Geist outlines and are not on the RoundCorner recipe.
 
 ## Credits
 

@@ -24,9 +24,14 @@ export default function Layout({ children }) {
 }
 ```
 
-The dedicated Namche Shadow Sans and Mono exports use their variable fonts.
-Static weights remain available from `@namche/namche-shadow/font` and the
-`sans-non-variable` and `mono-non-variable` entry points.
+**Namche Shadow Sans** should be loaded from static weights
+(`@namche/namche-shadow/font` or `sans-non-variable`). The designed inner
+corners come from Glyphs RoundCorner on statics; they are not in the Sans
+variable font. See
+[`documentation/NAMCHE_SHADOW_STATICS.md`](../../documentation/NAMCHE_SHADOW_STATICS.md).
+
+Namche Shadow Mono may use its variable font. Static Mono weights remain on
+`mono-non-variable`.
 
 Pixel variants are exported from `@namche/namche-shadow/font/pixel`:
 

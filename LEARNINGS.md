@@ -5,7 +5,7 @@ Operational notes from shipping **Namche-Shadow** (multi-tier) and **Namche-Shad
 ## Production path
 
 - **Ship with Glyphs RoundCorner export filters**, not the experimental Python inner-fillet engine (`scripts/round_inner_corners.py`).
-- Filters live on **static instances** only. Keep RoundCorner **off** on the variable instance — otherwise Glyphs reports incompatible masters after contours diverge per weight.
+- Filters live on **static instances** only. Keep RoundCorner **off** on the variable instance — otherwise Glyphs reports incompatible masters after contours diverge per weight. A source-built Sans VF is **out of scope** for the designed look; use Glyphs statics. See [`documentation/NAMCHE_SHADOW_STATICS.md`](documentation/NAMCHE_SHADOW_STATICS.md).
 - Upstream/`originals/geist/` stays **Geist** and immutable. Delivery family names (`Namche-Shadow`, `Namche-Shadow-Simple`) are set at export / name-table rewrite.
 
 ## Family naming (resolved 2026-08-11)

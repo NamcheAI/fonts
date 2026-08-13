@@ -24,7 +24,7 @@ On every **static** instance (Thin → Black) — **2026-08-11d**:
 5. `RoundCorner;-40;include:M, N, W, two, four, seven, six`
 6. `RoundCorner;-50;include:nine`
 
-**Variable instance:** RoundCorner filters **off** (strip entirely). Glyphs reports incompatible masters when filters reshape contours for VF.
+**Variable instance:** RoundCorner filters **off** (strip entirely). Glyphs reports incompatible masters when filters reshape contours for VF. Shipping Namche Shadow Sans is **statics only** — see [`documentation/NAMCHE_SHADOW_STATICS.md`](../documentation/NAMCHE_SHADOW_STATICS.md).
 
 ### Namche-Shadow-Simple
 
