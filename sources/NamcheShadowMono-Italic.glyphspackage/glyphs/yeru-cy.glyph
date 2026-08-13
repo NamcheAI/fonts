@@ -11,6 +11,12 @@ ref = "Yeru-cy";
 );
 };
 layerId = "EE2FFE84-06F1-4AFB-BBEC-60D09A436D14";
+anchors = (
+{
+name = top;
+pos = (356,530);
+}
+);
 shapes = (
 {
 closed = 1;
@@ -63,6 +69,12 @@ ref = "Yeru-cy";
 );
 };
 layerId = "574EE4B9-5C1A-4E7E-9985-C08FACB65BD8";
+anchors = (
+{
+name = top;
+pos = (356,530);
+}
+);
 shapes = (
 {
 closed = 1;
@@ -115,6 +127,12 @@ ref = "Yeru-cy";
 );
 };
 layerId = "58B1DC7A-69F8-4375-AD2E-AC5103CCF536";
+anchors = (
+{
+name = top;
+pos = (357,540);
+}
+);
 shapes = (
 {
 closed = 1;

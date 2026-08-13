@@ -9,6 +9,7 @@ help:
 	@echo "  make build:  Builds the fonts and places them in the fonts/ directory"
 	@echo "  make finalize-sans-statics GLYPHS_SANS_EXPORT=/path: merge native Glyphs OTF/TTF exports into the release files"
 	@echo "  make build-sans-variable GLYPHS_SANS_EXPORT=/path: build the rounded upright Sans VF from compatible Glyphs OTF exports"
+	@echo "  make refresh-sans-shaping COMPILED_SANS_BUILD=/path: refresh layout without changing approved outlines"
 	@echo "  make test:   Tests the fonts with fontspector"
 	@echo "  make proof:  Creates HTML proof documents in the proof/ directory"
 	@echo "  make images: Creates PNG specimen images in the documentation/ directory"
@@ -58,11 +59,9 @@ build.stamp: venv venv-pixel sources/config-NamcheShadowSans.yaml $(SOURCES)
 	touch build.stamp
 
 check-source-copies:
-	# Mono and Pixel are deliberately outline-identical Geist derivatives. Only
-	# fontinfo.plist may differ because it contains family names and attribution.
-	diff -qr --exclude=fontinfo.plist originals/geist/sources/GeistMono.glyphspackage sources/NamcheShadowMono.glyphspackage
-	diff -qr --exclude=fontinfo.plist originals/geist/sources/GeistMono-Italic.glyphspackage sources/NamcheShadowMono-Italic.glyphspackage
-	diff -qr --exclude=fontinfo.plist originals/geist/sources/GeistPixel.glyphspackage sources/NamcheShadowPixel.glyphspackage
+	# Mono and Pixel remain outline-identical Geist derivatives. The checker
+	# permits only the reviewed Mono anchor metadata needed for language shaping.
+	python3 scripts/check_source_copies.py
 
 check-sans-variable: venv
 	. venv/bin/activate; python3 scripts/check_sans_variable.py
@@ -76,6 +75,13 @@ finalize-sans-statics: venv
 build-sans-variable: venv
 	test -n "$(GLYPHS_SANS_EXPORT)" || (echo "Set GLYPHS_SANS_EXPORT to a directory containing compatible otf/ exports." && exit 1)
 	. venv/bin/activate; python3 scripts/build_sans_variable.py --glyphs-export "$(GLYPHS_SANS_EXPORT)" --statics fonts/NamcheShadowSans --output fonts/NamcheShadowSans
+	. venv/bin/activate; python3 scripts/rename_font_metadata.py --check fonts/NamcheShadowSans
+	$(MAKE) copy-npm-fonts
+
+refresh-sans-shaping: venv
+	test -n "$(COMPILED_SANS_BUILD)" || (echo "Set COMPILED_SANS_BUILD to a fresh gftools Sans output." && exit 1)
+	. venv/bin/activate; python3 scripts/refresh_shaping_tables.py --compiled "$(COMPILED_SANS_BUILD)" --output fonts/NamcheShadowSans
+	. venv/bin/activate; python3 scripts/rename_font_metadata.py fonts/NamcheShadowSans
 	. venv/bin/activate; python3 scripts/rename_font_metadata.py --check fonts/NamcheShadowSans
 	$(MAKE) copy-npm-fonts
 
@@ -149,6 +155,7 @@ test: build.stamp
 	TOCHECK=$$(find fonts/NamcheShadowMono/variable -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowMonoVF-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowMono.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
 	TOCHECK=$$(find fonts/NamcheShadowMono/ttf -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowMono-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowMono.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
 	TOCHECK=$$(find fonts/NamcheShadowPixel/ttf -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowPixel-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowPixel.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
+	python3 scripts/check_language_shaping.py out/fontspector/NamcheShadowSansVF-fontspector-report.json out/fontspector/NamcheShadowSans-fontspector-report.json out/fontspector/NamcheShadowMonoVF-fontspector-report.json out/fontspector/NamcheShadowMono-fontspector-report.json
 
 proof: venv build.stamp
 	TOCHECK=$$(find fonts/NamcheShadowSans/variable -type f 2>/dev/null); if [ -z "$$TOCHECK" ]; then TOCHECK=$$(find fonts/NamcheShadowSans/ttf -type f 2>/dev/null); fi ; . venv/bin/activate; mkdir -p out/ out/proof; diffenator2 proof $$TOCHECK -o out/proof

@@ -11,6 +11,12 @@ non-blocking while the baseline is being reduced, but new findings are not
 automatically acceptable: compare the report before and after every font
 change.
 
+Language shaping is the blocking exception. At the end of `make test`,
+`scripts/check_language_shaping.py` rejects any Sans or Mono soft-dotted
+failure, mark-attachment failure, or primary/mandatory orthography omission.
+The only accepted `shape_languages` warnings are the optional characters
+listed in [`LANGUAGE_SUPPORT.md`](LANGUAGE_SUPPORT.md).
+
 ## Current failures
 
 | Family | Finding | Interpretation |
@@ -37,8 +43,9 @@ vendor-ID, and sidebearing groups described below, plus:
   they are not proof of a broken outline. Much of this baseline comes from
   upstream Geist and the intentional Pixel geometry.
 - Glyph reachability and naming warnings flag encoded or substitution access,
-  long legacy glyph names, soft-dotted behavior, dotted-circle behavior, and
-  language-shaping coverage. Treat any increase as a possible regression.
+  long legacy glyph names, dotted-circle behavior, and language-shaping
+  coverage. Pixel retains inherited soft-dotted warnings; Sans and Mono now
+  pass that check as a hard gate. Treat any increase as a regression.
 - Metadata warnings cover WWS/STAT setup, vendor ID, name length, and family
   metadata. These are suitable for focused cleanup PRs rather than being mixed
   into a design-source update.

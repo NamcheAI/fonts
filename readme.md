@@ -32,6 +32,8 @@ make proof
 
 The current Fontspector baseline and triage guidance are documented in
 [`documentation/FONTSPECTOR.md`](documentation/FONTSPECTOR.md).
+The supported-script contract and intentional auxiliary omissions are listed in
+[`documentation/LANGUAGE_SUPPORT.md`](documentation/LANGUAGE_SUPPORT.md).
 
 The Namche Shadow Sans RoundCorner workflow still requires Glyphs for final design
 exports. See [`scripts/NAMCHE_SHADOW.md`](scripts/NAMCHE_SHADOW.md) and
