@@ -30,6 +30,18 @@ REPRESENTATIVE_GLYPHS = (
     "Uogonek",
     "uni0163",
 )
+NPM_ENTRYPOINTS = ("font.js", "sans.js")
+NPM_UPRIGHT_STYLES = (
+    "Thin",
+    "UltraLight",
+    "Light",
+    "Regular",
+    "Medium",
+    "SemiBold",
+    "Bold",
+    "Black",
+    "UltraBlack",
+)
 
 
 def _glyph_area(font: TTFont, glyph_name: str) -> float:
@@ -95,6 +107,19 @@ def check(root: Path) -> None:
             coordinates, ends, _ = glyph.getCoordinates(instance["glyf"])
             if not coordinates or not ends:
                 raise ValueError(f"empty representative glyph {glyph_name} at wght={weight}")
+
+    npm_dist = Path(__file__).resolve().parent.parent / "packages" / "next" / "dist"
+    required_uprights = {
+        "NamcheShadowSans-Variable.woff2",
+        *(f"NamcheShadowSans-{style}.woff2" for style in NPM_UPRIGHT_STYLES),
+    }
+    for entrypoint in NPM_ENTRYPOINTS:
+        source = (npm_dist / entrypoint).read_text()
+        missing = sorted(name for name in required_uprights if name not in source)
+        if missing:
+            raise ValueError(
+                f"{entrypoint} is missing the VF/static fallback coverage: {missing}"
+            )
 
     print(f"Validated rounded Sans VF: {variable_path} and {webfont_path}")
 
