@@ -272,6 +272,10 @@ def render_issue_25() -> None:
 
 
 def main() -> None:
+    if not features.check_feature("raqm"):
+        raise SystemExit(
+            "Pillow must be built with RAQM support to render reliable shaping proofs."
+        )
     OUTPUT.mkdir(parents=True, exist_ok=True)
     render_issue_20()
     render_issue_21()
