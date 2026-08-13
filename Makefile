@@ -142,6 +142,8 @@ venv-pixel/touchfile: Makefile
 
 test: build.stamp
 	which fontspector || (echo "fontspector not found. Please install it with 'cargo install fontspector'." && exit 1)
+	rm -rf out/fontspector out/badges
+	mkdir -p out/fontspector out/badges
 	TOCHECK=$$(find fonts/NamcheShadowSans/variable -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowSansVF-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowSans.yaml,title=fontspector failures::The Sans variable-font QA check reported errors. Please check the generated report.'
 	TOCHECK=$$(find fonts/NamcheShadowSans/ttf -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowSans-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowSans.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
 	TOCHECK=$$(find fonts/NamcheShadowMono/variable -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowMonoVF-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowMono.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'

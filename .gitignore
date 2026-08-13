@@ -7,6 +7,7 @@ venv-test
 build.stamp
 proof
 node_modules
+__pycache__/
 package-lock.json
 package.json
 !packages/**/package.json
@@ -30,6 +31,8 @@ namche-shadow-font/
 namche-shadow-font*.zip
 packages/next/dist/fonts/
 artifacts/
+out/badges/
+out/fontspector/
 
 # Autosaved by application when editing
 ######################
