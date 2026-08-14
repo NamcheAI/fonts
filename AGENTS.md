@@ -54,6 +54,10 @@ conventions.
   static.
 - Namche Shadow Mono and Namche Shadow Pixel remain outline-identical renamed
   Geist derivatives until a separately reviewed design change says otherwise.
+- For an OpenType-layout-only source change, build a temporary matching family
+  with gftools and run `scripts/refresh_shaping_tables.py` against the approved
+  release family. The script may replace only `GDEF`, `GSUB`, and `GPOS`; it
+  verifies that outlines, variation data, and metrics remain byte-identical.
 
 ## Required workflow
 
@@ -102,3 +106,6 @@ Do not dismiss Fontspector output merely because CI currently marks the step as
 non-blocking. Summarize new warnings in the PR, distinguish upstream/pre-existing
 warnings from regressions, and fix regressions before merge. See
 `documentation/FONTSPECTOR.md` for the maintained baseline.
+`scripts/check_language_shaping.py` is the blocking exception: every Sans and
+Mono TTF/VF must pass `soft_dotted`, and language-shaping warnings may contain
+only documented auxiliary omissions.

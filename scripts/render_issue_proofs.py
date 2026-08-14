@@ -33,6 +33,17 @@ MONO_ITALIC_VF = (
     / "variable"
     / "NamcheShadowMono-Italic[wght].ttf"
 )
+REFERENCE_FONT_CANDIDATES = (
+    Path("/System/Library/Fonts/Supplemental/Arial Unicode.ttf"),
+    Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+)
+
+
+def reference_font() -> Path:
+    for path in REFERENCE_FONT_CANDIDATES:
+        if path.is_file():
+            return path
+    raise FileNotFoundError("no Unicode reference font found for issue proofs")
 
 
 def font(path: Path, size: int, weight: int | None = None) -> ImageFont.FreeTypeFont:
@@ -154,18 +165,26 @@ def render_issue_21() -> None:
     image, draw = canvas(
         21,
         "LANGUAGE SHAPING",
-        "Exact characters and combining-mark sequences reported by Fontspector.",
-        1300,
+        "Fixed in Sans + Mono; retained warnings are documented optional characters only.",
+        1500,
     )
     sans = SANS_DIR / "NamcheShadowSans-Regular.ttf"
-    section(draw, 340, "Missing auxiliary characters")
-    draw_shaping_row(draw, 405, "Danish · Catalan · Finnish · German / French", "Ǿ ǿ   Ĕ Ĭ Ŀ Ŏ   Ȟ Ʒ Ǯ   ſ ʻ", sans)
-    section(draw, 575, "Cyrillic mark attachment")
-    draw_shaping_row(draw, 640, "Serbian circumflex · Bulgarian grave", "а̂ е̂ и̂ о̂ у̂    а̀ о̀ у̀ ъ̀ ю̀ я̀", sans)
-    draw_shaping_row(draw, 790, "Ukrainian / Belarusian / Russian acute", "а́ е́ є́ и́ і́ ї́ о́ у́ ы́ э́ ю́ я́", sans)
-    section(draw, 965, "Soft-dotted behavior")
-    draw_shaping_row(draw, 1030, "The base dot should disappear under these marks", "і́   į̄ į̌ į̂ į̀ į̃ į́   ị̄ ị̂", sans)
-    footer(draw, image.height, "NamcheShadowSans-Regular.ttf · Unicode combining sequences")
+    mono = MONO_DIR / "NamcheShadowMono-Regular.ttf"
+    section(draw, 340, "Fixed · Cyrillic mark attachment", GREEN)
+    draw_shaping_row(draw, 405, "SANS · circumflex, grave, acute", "а̂ е̂ и̂ о̂ у̂    а̀ о̀ у̀ ъ̀ ю̀ я̀    і́ ї́ ы́ э́ ю́", sans)
+    draw_shaping_row(draw, 555, "MONO · circumflex, grave, acute", "а̂ е̂ и̂ о̂ у̂    а̀ о̀ у̀ ъ̀ ю̀ я̀    і́ ї́ ы́ э́ ю́", mono)
+    section(draw, 730, "Fixed · soft-dotted behavior", GREEN)
+    draw_shaping_row(draw, 795, "SANS · the base dot disappears below each top mark", "і́   ј́   į̄ į̌ į̂ į̀ į̃ į́   ị̄ ị̂", sans)
+    draw_shaping_row(draw, 945, "MONO · the base dot disappears below each top mark", "і́   ј́   į̄ į̌ į̂ į̀ į̃ į́   ị̄ ị̂", mono)
+    section(draw, 1120, "Documented · optional auxiliary omissions", MUTED)
+    draw_shaping_row(
+        draw,
+        1185,
+        "REFERENCE RENDERING · deliberately not claimed as supported",
+        "Ǿ ǿ   Ĕ ĕ Ĭ ĭ Ŀ ŀ Ŏ ŏ   Ĳ ĳ   Ȟ ȟ Ʒ ʒ Ǯ ǯ   Ǔ ǔ ſ ʻ",
+        reference_font(),
+    )
+    footer(draw, image.height, "Namche Shadow Sans + Mono Regular · Unicode combining sequences")
     image.save(OUTPUT / "issue-21-language-shaping.png", optimize=True)
 
 

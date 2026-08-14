@@ -23,7 +23,11 @@ FAMILIES = {
 }
 FONT_SUFFIXES = {".otf", ".ttf", ".woff2"}
 VENDOR_ID = "NMCH"
-PIXEL_LANGUAGE_TAGS = {"dlng": "Latn", "slng": "Latn"}
+FAMILY_LANGUAGE_TAGS = {
+    "Namche Shadow Sans": {"dlng": "Latn", "slng": "Latn,Cyrl"},
+    "Namche Shadow Mono": {"dlng": "Latn", "slng": "Latn,Cyrl"},
+    "Namche Shadow Pixel": {"dlng": "Latn", "slng": "Latn"},
+}
 VARIABLE_INSTANCE_NAME_ALIASES = {
     "Namche Shadow Mono": {
         "ExtraLight Italic": "XLight Italic",
@@ -140,10 +144,11 @@ def rewrite_cff(font: TTFont, human: str, compact: str) -> None:
 def rewrite_opentype_metadata(font: TTFont, human: str) -> None:
     if "OS/2" in font:
         font["OS/2"].achVendID = VENDOR_ID
-    if human == "Namche Shadow Pixel":
+    language_tags = FAMILY_LANGUAGE_TAGS.get(human)
+    if language_tags:
         if "meta" not in font:
-            raise ValueError("Namche Shadow Pixel font is missing its meta table")
-        font["meta"].data.update(PIXEL_LANGUAGE_TAGS)
+            raise ValueError(f"{human} font is missing its meta table")
+        font["meta"].data.update(language_tags)
 
 
 def font_files(root: Path) -> list[Path]:
@@ -191,8 +196,10 @@ def check(path: Path) -> list[str]:
             or font["name"].getDebugName(1)
             or ""
         )
+        instance_styles = set()
         for instance in font["fvar"].instances:
             style = font["name"].getDebugName(instance.subfamilyNameID) or ""
+            instance_styles.add(style)
             combined = f"{family} {style}"
             if len(combined) > 32:
                 errors.append(
@@ -200,12 +207,23 @@ def check(path: Path) -> list[str]:
                     f"{combined!r}"
                 )
         aliases = VARIABLE_INSTANCE_NAME_ALIASES.get(human, {})
-        if aliases and "STAT" in font:
+        used_aliases = set(aliases.values()) & instance_styles
+        if used_aliases and "STAT" in font:
+            axis_value_array = font["STAT"].table.AxisValueArray
+            axis_values = (
+                axis_value_array.AxisValue
+                if axis_value_array is not None
+                else []
+            )
             stat_names = {
                 font["name"].getDebugName(axis_value.ValueNameID)
-                for axis_value in font["STAT"].table.AxisValueArray.AxisValue
+                for axis_value in axis_values
             }
-            full_stat_styles = {style.removesuffix(" Italic") for style in aliases}
+            full_stat_styles = {
+                style.removesuffix(" Italic")
+                for style, alias in aliases.items()
+                if alias in used_aliases
+            }
             missing = sorted(full_stat_styles - stat_names)
             if missing:
                 errors.append(
@@ -223,9 +241,10 @@ def check(path: Path) -> list[str]:
         errors.append(
             f"{path}: expected OS/2 vendor ID {VENDOR_ID!r}; found {actual_vendor!r}"
         )
-    if human == "Namche Shadow Pixel":
+    expected_tags = FAMILY_LANGUAGE_TAGS.get(human)
+    if expected_tags:
         actual_tags = font["meta"].data if "meta" in font else {}
-        for tag, expected in PIXEL_LANGUAGE_TAGS.items():
+        for tag, expected in expected_tags.items():
             if actual_tags.get(tag) != expected:
                 errors.append(
                     f"{path}: expected meta {tag}={expected!r}; "
@@ -250,12 +269,12 @@ def main() -> int:
         if errors:
             print("\n".join(errors), file=sys.stderr)
             return 1
-        print(f"Validated {len(files)} Namche Shadow Sans font files")
+        print(f"Validated {len(files)} Namche Shadow font files")
         return 0
 
     for path in files:
         rewrite(path)
-    print(f"Rewrote metadata in {len(files)} Namche Shadow Sans font files")
+    print(f"Rewrote metadata in {len(files)} font files")
     return 0
 
 

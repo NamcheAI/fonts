@@ -114,6 +114,7 @@ featurePrefixes = (
 {
 automatic = 1;
 code = "languagesystem DFLT dflt;
+languagesystem cyrl dflt;
 
 languagesystem latn dflt;
 languagesystem latn AZE;
@@ -168,6 +169,10 @@ code = "lookup ccmp_DFLT_1 {
 	lookupflag UseMarkFilteringSet @CombiningTopAccents;
 	sub i' @CombiningTopAccents by idotless;
 	sub j' @CombiningTopAccents by jdotless;
+	sub iogonek' @CombiningTopAccents by idotless ogonekcomb;
+	sub idotbelow' @CombiningTopAccents by idotless dotbelowcomb;
+	sub i-cy' @CombiningTopAccents by idotless;
+	sub je-cy' @CombiningTopAccents by jdotless;
 } ccmp_DFLT_1;
 
 lookup ccmp_DFLT_2 {

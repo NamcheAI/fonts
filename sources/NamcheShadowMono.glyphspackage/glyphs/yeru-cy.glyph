@@ -47,6 +47,12 @@ nodes = (
 );
 };
 layerId = "EE2FFE84-06F1-4AFB-BBEC-60D09A436D14";
+anchors = (
+{
+name = top;
+pos = (300,530);
+}
+);
 shapes = (
 {
 closed = 1;
@@ -135,6 +141,12 @@ nodes = (
 );
 };
 layerId = "574EE4B9-5C1A-4E7E-9985-C08FACB65BD8";
+anchors = (
+{
+name = top;
+pos = (303,528);
+}
+);
 shapes = (
 {
 closed = 1;
@@ -223,6 +235,12 @@ nodes = (
 );
 };
 layerId = "58B1DC7A-69F8-4375-AD2E-AC5103CCF536";
+anchors = (
+{
+name = top;
+pos = (300,539);
+}
+);
 shapes = (
 {
 closed = 1;
