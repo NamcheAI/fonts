@@ -1,4 +1,5 @@
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 
@@ -18,6 +19,9 @@ PIXEL_FIXTURES = (
     / "NamcheShadowPixel"
     / "webfonts"
     / "NamcheShadowPixel-Circle.woff2",
+)
+PIXEL_GRID_OTF = (
+    ROOT / "fonts" / "NamcheShadowPixel" / "otf" / "NamcheShadowPixel-Grid.otf"
 )
 
 
@@ -81,6 +85,16 @@ class PixelRupeeTest(unittest.TestCase):
 
         self.assertEqual(len(errors), 1)
         self.assertIn("missing U+20B9 ₹", errors[0])
+
+    def testWrongStyleRupeeOutlineIsRejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / PIXEL_FIXTURES[0].name
+            shutil.copyfile(PIXEL_FIXTURES[0], path)
+            self.assertTrue(finalize_font(path, PIXEL_GRID_OTF))
+            errors = validate_font(path)
+
+        self.assertEqual(len(errors), 1)
+        self.assertIn("Circle cff outline changed", errors[0])
 
     def testFinalizerRestoresEveryStaticFormatIdempotently(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

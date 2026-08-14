@@ -20,6 +20,7 @@ from pathlib import Path
 import glyphsLib
 from fontTools.misc.psCharStrings import T2CharString
 from fontTools.otlLib.builder import buildCoverage, buildLigGlyph
+from fontTools.pens.basePen import NullPen
 from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.recordingPen import RecordingPen
 from fontTools.pens.t2CharStringPen import T2CharStringPen
@@ -136,6 +137,12 @@ def _set_cff_charstring(font: TTFont, glyph_name: str, charstring: T2CharString)
         charstrings.charStrings[glyph_name] = charstring
 
 
+def _cff_charstring_width(font: TTFont, glyph_name: str) -> int:
+    charstring = font["CFF "].cff.topDictIndex[0].CharStrings[glyph_name]
+    charstring.draw(NullPen())
+    return round(charstring.width)
+
+
 def _copy_outline(
     font: TTFont,
     glyph_name: str,
@@ -151,10 +158,14 @@ def _copy_outline(
     if "CFF " in font:
         top_dict = font["CFF "].cff.topDictIndex[0]
         width = compiled_font["hmtx"].metrics[compiled_glyph_name][0]
-        pen = T2CharStringPen(width, source_glyph_set)
+        private = top_dict.Private
+        charstring_width = (
+            None if width == private.defaultWidthX else width - private.nominalWidthX
+        )
+        pen = T2CharStringPen(charstring_width, source_glyph_set)
         source_glyph_set[compiled_glyph_name].draw(pen)
         charstring = pen.getCharString(
-            private=top_dict.Private,
+            private=private,
             globalSubrs=font["CFF "].cff.GlobalSubrs,
         )
         _set_cff_charstring(font, glyph_name, charstring)
@@ -179,11 +190,16 @@ def _restore_rupee(font: TTFont, compiled_font: TTFont) -> bool:
     ) != _outline_recording(compiled_font, compiled_glyph_name)
     metrics = compiled_font["hmtx"].metrics[compiled_glyph_name]
     metrics_changed = missing or font["hmtx"].metrics.get(glyph_name) != metrics
+    cff_width_changed = (
+        "CFF " in font
+        and not missing
+        and _cff_charstring_width(font, glyph_name) != metrics[0]
+    )
     cmap_changed = any(
         table.isUnicode() and table.cmap.get(RUPEE_CODEPOINT) != glyph_name
         for table in font["cmap"].tables
     )
-    if not (outline_changed or metrics_changed or cmap_changed):
+    if not (outline_changed or metrics_changed or cff_width_changed or cmap_changed):
         return False
 
     _copy_outline(font, glyph_name, compiled_font, compiled_glyph_name)
