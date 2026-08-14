@@ -88,7 +88,7 @@ refresh-sans-shaping: venv
 	. venv/bin/activate; python3 scripts/rename_font_metadata.py --check fonts/NamcheShadowSans
 	$(MAKE) copy-npm-fonts
 
-copy-npm-fonts:
+copy-npm-fonts: venv
 	# Clear any pre-existing build artifacts
 	rm -rf packages/next/dist/fonts
 	# Copy over the relevant font files
@@ -124,6 +124,7 @@ copy-npm-fonts:
 		mv NamcheShadowMono-ExtraBold.woff2 NamcheShadowMono-UltraBlack.woff2 && \
 		mv 'NamcheShadowMono[wght].ttf' NamcheShadowMono-Variable.ttf && \
 		mv 'NamcheShadowMono[wght].woff2' NamcheShadowMono-Variable.woff2
+	. venv/bin/activate; python3 scripts/rename_font_metadata.py --check packages/next/dist/fonts
 
 create-release-zip:
 	mkdir -p namche-shadow-font

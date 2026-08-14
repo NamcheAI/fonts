@@ -20,9 +20,14 @@ FAMILIES = {
     "NamcheShadowSans": ("Namche Shadow Sans", "NamcheShadowSans"),
     "NamcheShadowMono": ("Namche Shadow Mono", "NamcheShadowMono"),
     "NamcheShadowPixel": ("Namche Shadow Pixel", "NamcheShadowPixel"),
+    "namche-shadow-sans": ("Namche Shadow Sans", "NamcheShadowSans"),
+    "namche-shadow-mono": ("Namche Shadow Mono", "NamcheShadowMono"),
+    "namche-shadow-pixel": ("Namche Shadow Pixel", "NamcheShadowPixel"),
 }
 FONT_SUFFIXES = {".otf", ".ttf", ".woff2"}
 VENDOR_ID = "NMCH"
+WWS_BIT = 1 << 8
+PIXEL_FAMILY = "Namche Shadow Pixel"
 FAMILY_LANGUAGE_TAGS = {
     "Namche Shadow Sans": {"dlng": "Latn", "slng": "Latn,Cyrl"},
     "Namche Shadow Mono": {"dlng": "Latn", "slng": "Latn,Cyrl"},
@@ -141,9 +146,37 @@ def rewrite_cff(font: TTFont, human: str, compact: str) -> None:
             top_dict.FullName = replace_family_name(top_dict.FullName, human, compact)
 
 
+def copy_legacy_names_to_wws(font: TTFont) -> None:
+    names = font["name"]
+    names.removeNames(nameID=21)
+    names.removeNames(nameID=22)
+    for source_id, target_id in ((1, 21), (2, 22)):
+        for record in list(names.names):
+            if record.nameID != source_id:
+                continue
+            names.setName(
+                record.toUnicode(),
+                target_id,
+                record.platformID,
+                record.platEncID,
+                record.langID,
+            )
+
+
 def rewrite_opentype_metadata(font: TTFont, human: str) -> None:
     if "OS/2" in font:
+        if font["OS/2"].version < 4:
+            raise ValueError(
+                f"{human} requires OS/2 version 4 or later"
+            )
         font["OS/2"].achVendID = VENDOR_ID
+        if human == PIXEL_FAMILY:
+            font["OS/2"].fsSelection &= ~WWS_BIT
+            copy_legacy_names_to_wws(font)
+        else:
+            font["OS/2"].fsSelection |= WWS_BIT
+            font["name"].removeNames(nameID=21)
+            font["name"].removeNames(nameID=22)
     language_tags = FAMILY_LANGUAGE_TAGS.get(human)
     if language_tags:
         if "meta" not in font:
@@ -241,6 +274,53 @@ def check(path: Path) -> list[str]:
         errors.append(
             f"{path}: expected OS/2 vendor ID {VENDOR_ID!r}; found {actual_vendor!r}"
         )
+    if "OS/2" in font and font["OS/2"].version < 4:
+        errors.append(
+            f"{path}: expected OS/2 version 4 or later; "
+            f"found {font['OS/2'].version}"
+        )
+    wws_names = sorted(
+        {record.nameID for record in font["name"].names if record.nameID in {21, 22}}
+    )
+    has_wws_bit = "OS/2" in font and bool(font["OS/2"].fsSelection & WWS_BIT)
+    if human == PIXEL_FAMILY:
+        if has_wws_bit:
+            errors.append(f"{path}: Pixel's custom shape styles require WWS bit 8 clear")
+        if wws_names != [21, 22]:
+            errors.append(
+                f"{path}: Pixel requires WWS name IDs 21/22; found {wws_names!r}"
+            )
+        for legacy_id, wws_id in ((1, 21), (2, 22)):
+            legacy_records = {
+                (record.platformID, record.platEncID, record.langID, record.toUnicode())
+                for record in font["name"].names
+                if record.nameID == legacy_id
+            }
+            wws_records = {
+                (record.platformID, record.platEncID, record.langID, record.toUnicode())
+                for record in font["name"].names
+                if record.nameID == wws_id
+            }
+            if legacy_records != wws_records:
+                errors.append(
+                    f"{path}: Pixel name ID {wws_id} must match legacy name ID "
+                    f"{legacy_id}; found {wws_records!r}, "
+                    f"expected {legacy_records!r}"
+                )
+    else:
+        if not has_wws_bit:
+            actual_selection = (
+                font["OS/2"].fsSelection if "OS/2" in font else "<missing>"
+            )
+            errors.append(
+                f"{path}: expected OS/2 fsSelection WWS bit 8; "
+                f"found {actual_selection!r}"
+            )
+        if wws_names:
+            errors.append(
+                f"{path}: WWS bit 8 is set, so name IDs 21/22 must be absent; "
+                f"found {wws_names!r}"
+            )
     expected_tags = FAMILY_LANGUAGE_TAGS.get(human)
     if expected_tags:
         actual_tags = font["meta"].data if "meta" in font else {}

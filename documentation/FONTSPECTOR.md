@@ -23,7 +23,7 @@ listed in [`LANGUAGE_SUPPORT.md`](LANGUAGE_SUPPORT.md).
 | --- | --- | --- |
 | Sans and Mono statics | `repo/dirname_matches_nameid_1` | The Google Fonts profile interprets the distribution folder `ttf/` as a Google Fonts family directory. This repository deliberately uses the Geist-style `fonts/<Family>/ttf/` layout, so this is a profile/layout mismatch. |
 | Mono italic variable | `googlefonts/fvar_instances` | The three Word-compatible named-instance aliases intentionally differ from the full STAT weight labels. This satisfies the universal 32-character family-and-style limit while preserving the public typographic names, but it would block a Google Fonts submission. |
-| Pixel statics | `font_names/unsupported-style` | Circle, Grid, Line, Square, and Triangle are custom Pixel styles; the Google Fonts profile expects conventional weight/style names. This is expected for the current product model but would block a Google Fonts submission. |
+| Pixel statics | `googlefonts/canonical_filename`, `googlefonts/font_names` | Correct WWS IDs 21/22 expose Circle, Grid, Line, Square, and Triangle to the Google Fonts profile as separate Regular-only families. That profile consequently expects filenames/full/PostScript names such as `NamcheShadowPixelCircle-Regular`, conflicting with the intentionally retained public typographic family/style model and release filenames. This is expected for the direct/npm distribution but would need a separate naming model for a Google Fonts submission. |
 
 Namche Shadow Sans VF currently has **no Fontspector failures**. Its 26 warning
 results are the existing outline, glyph-reachability, language-shaping, WWS,
@@ -63,9 +63,9 @@ guarded distance changes.
   long legacy glyph names, dotted-circle behavior, and language-shaping
   coverage. Pixel retains inherited soft-dotted warnings; Sans and Mono now
   pass that check as a hard gate. Treat any increase as a regression.
-- Metadata warnings cover WWS/STAT setup, vendor ID, name length, and family
-  metadata. These are suitable for focused cleanup PRs rather than being mixed
-  into a design-source update.
+- Metadata warnings cover STAT setup, vendor registration, name length, and
+  family metadata. These are suitable for focused cleanup PRs rather than
+  being mixed into a design-source update.
 - Design-consistency warnings such as math-sign widths and ligature carets need
   a designer/type-engineer decision before changing outlines or metrics.
 
@@ -82,7 +82,7 @@ and `documentation/issues/issue-23-outline-heuristics.png`.
 | `overlapping_path_segments` | Intentional implementation artifact | Current findings are coincident component edges or zero-length segments produced by source composition and VF compatibility. They have no demonstrated rendering defect; retain them unless a focused source review proves otherwise. |
 | `math_signs_width` | Intentional design choice | Sans is proportional, Mono already uses its monospaced advance, and Pixel keeps the inherited shape-specific widths. Do not normalize spacing merely to match the most common glyph width. |
 | Mono `opentype/monospace` | Intentional tool mismatch | The current 1139 upright / 1128 italic values are already the minimum for the approved glyph order and metrics. Fontspector hard-codes the OpenType suggestion of `3`, which cannot represent the 39 zero-width marks without changing advances or glyph order. Retain the warning; see [#33](https://github.com/NamcheAI/namche-shadow-font/issues/33). |
-| `opentype/fsselection_wws` | Metadata defect | Make the maintained WWS metadata spec-correct across all three families in [#35](https://github.com/NamcheAI/namche-shadow-font/issues/35). |
+| `opentype/fsselection_wws` | Resolved metadata defect | Sans and Mono set OS/2 `fsSelection` bit 8 and omit name IDs 21/22. Pixel keeps bit 8 clear and uses its legacy family/subfamily names as IDs 21/22 because Element Shape is not a weight/width/slope style. The public typographic names remain unchanged and the central metadata normalizer blocks regressions ([#35](https://github.com/NamcheAI/namche-shadow-font/issues/35)). |
 | Pixel `separator_glyphs` | Resolved export defect | The source and every static release/npm font preserve inkless U+2028/U+2029 glyphs at the reviewed 600-unit width. `make check-pixel-separators` blocks regressions ([#32](https://github.com/NamcheAI/namche-shadow-font/issues/32)). |
 | Pixel `rupee` | Missing glyph feature | Design and ship **₹** for all five Pixel styles in [#34](https://github.com/NamcheAI/namche-shadow-font/issues/34). |
 | Pixel `dotted_circle`, required `soft_dotted` | Shaping/design feature | Add **◌** and correct **į́ į̌ į̀ į̃ į̄ į̂** behavior in [#36](https://github.com/NamcheAI/namche-shadow-font/issues/36). |

@@ -54,6 +54,12 @@ conventions.
   static.
 - Namche Shadow Mono and Namche Shadow Pixel remain outline-identical renamed
   Geist derivatives until a separately reviewed design change says otherwise.
+- Every release and npm binary uses OS/2 version 4 or later. Sans and Mono set
+  `fsSelection` WWS bit 8 and omit name IDs 21/22. Pixel keeps bit 8 clear and
+  mirrors its legacy family/subfamily names into WWS IDs 21/22 because the
+  Element Shape styles are not weight/width/slope qualifiers. Preserve the
+  public typographic family/style names; `scripts/rename_font_metadata.py` is
+  the maintained normalization and check.
 - For an OpenType-layout-only source change, build a temporary matching family
   with gftools and run `scripts/refresh_shaping_tables.py` against the approved
   release family. The script may replace only `GDEF`, `GSUB`, and `GPOS`; it
