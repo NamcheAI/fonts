@@ -81,7 +81,7 @@ and `documentation/issues/issue-23-outline-heuristics.png`.
 | `alignment_miss`, `colinear_vectors`, `jaggy_segments`, `short_segments`, `contour_count` | Intentional design/source heuristics | The rendered Sans, Mono, and Pixel examples show the expected rounded overshoots, interpolation/source points, and Pixel grid geometry. Do not bulk-edit these coordinates. A newly reported or visibly wrong glyph still requires an issue and Michael's review. |
 | `overlapping_path_segments` | Intentional implementation artifact | Current findings are coincident component edges or zero-length segments produced by source composition and VF compatibility. They have no demonstrated rendering defect; retain them unless a focused source review proves otherwise. |
 | `math_signs_width` | Intentional design choice | Sans is proportional, Mono already uses its monospaced advance, and Pixel keeps the inherited shape-specific widths. Do not normalize spacing merely to match the most common glyph width. |
-| Mono `opentype/monospace` | Binary optimization | Compact the redundant `hhea.numberOfHMetrics` representation without changing advances or sidebearings in [#33](https://github.com/NamcheAI/namche-shadow-font/issues/33). |
+| Mono `opentype/monospace` | Intentional tool mismatch | The current 1139 upright / 1128 italic values are already the minimum for the approved glyph order and metrics. Fontspector hard-codes the OpenType suggestion of `3`, which cannot represent the 39 zero-width marks without changing advances or glyph order. Retain the warning; see [#33](https://github.com/NamcheAI/namche-shadow-font/issues/33). |
 | `opentype/fsselection_wws` | Metadata defect | Make the maintained WWS metadata spec-correct across all three families in [#35](https://github.com/NamcheAI/namche-shadow-font/issues/35). |
 | Pixel `separator_glyphs` | Resolved export defect | The source and every static release/npm font preserve inkless U+2028/U+2029 glyphs at the reviewed 600-unit width. `make check-pixel-separators` blocks regressions ([#32](https://github.com/NamcheAI/namche-shadow-font/issues/32)). |
 | Pixel `rupee` | Missing glyph feature | Design and ship **₹** for all five Pixel styles in [#34](https://github.com/NamcheAI/namche-shadow-font/issues/34). |
@@ -91,6 +91,32 @@ and `documentation/issues/issue-23-outline-heuristics.png`.
 | `unreachable_glyphs`, `unreachable_subsetting` | Source/distributor profile choice | Unencoded working/component glyphs remain available to the source, while this npm/direct-download project has no Google Fonts `METADATA.pb` subset-serving contract. Treat count increases as regressions, but do not remove the baseline solely for this profile. |
 | Pixel `soft_hyphen` | Intentional compatibility choice | Retain encoded U+00AD; its presence conflicts with current Google Fonts policy but is valid for the direct font distribution. |
 | Sans VF `suspicious_sidebearings` | Mark-metric heuristic | The reported glyph is the combining mark `uni03020301`; its right-sidebearing variation is not user-facing spacing. Reopen only if shaping proof exposes a mark-positioning defect. |
+
+### Mono `numberOfHMetrics`
+
+Issue [#33](https://github.com/NamcheAI/namche-shadow-font/issues/33)
+confirmed that no safe compaction is available under the release invariants.
+The upright Mono order contains `.notdef` at 500 units, 39 combining marks at
+zero units, and the remaining glyphs at 600 units; italic has the same advance
+classes. Since `hmtx` can elide only one trailing run with a shared advance,
+FontTools already emits the minimum values for the current order: 1139 upright
+and 1128 italic.
+
+The OpenType recommendation says monospaced fonts are *suggested* to use three
+long metrics; it is not a conformance requirement. The FontTools discussion
+linked by Fontspector explains that this cannot model modern monospaced fonts
+with zero-width marks and was closed without a compiler change:
+
+- [Microsoft OpenType recommendations](https://learn.microsoft.com/en-us/typography/opentype/spec/recom#hhea-table)
+- [FontTools issue #3014](https://github.com/fonttools/fonttools/issues/3014)
+
+Forcing `3` would change 38 combining-mark advances. Grouping the exceptions
+could reduce the TrueType value to 41, but only by changing glyph order, and
+Fontspector would still warn because it requires exactly `3`. Both changes are
+outside the approved invariants. `make check-mono-hmetrics` blocks any loss of
+the safe minimum or the reviewed advance inventory across the TrueType release
+and npm files. The proof is maintained at
+`documentation/issues/issue-33-mono-hmetrics.png`.
 
 For Sans, the release-specific acceptance checks are stronger than the generic
 profile: every static weight must contain the complete seven-tier RoundCorner

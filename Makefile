@@ -149,7 +149,7 @@ venv-pixel/touchfile: Makefile
 	. venv-pixel/bin/activate; pip install "gftools @ git+https://github.com/googlefonts/gftools@$(GFTOOLS_PIXEL_REF)"
 	touch venv-pixel/touchfile
 
-test: fontspector check-language-shaping check-pixel-separators
+test: fontspector check-language-shaping check-pixel-separators check-mono-hmetrics
 
 test-scripts: venv
 	. venv/bin/activate; python3 -m unittest discover -s tests -p 'test_*.py'
@@ -169,6 +169,9 @@ check-language-shaping:
 
 check-pixel-separators: venv build.stamp
 	. venv/bin/activate; python3 scripts/check_pixel_separators.py
+
+check-mono-hmetrics: venv build.stamp
+	. venv/bin/activate; python3 scripts/check_mono_hmetrics.py
 
 proof: venv build.stamp
 	TOCHECK=$$(find fonts/NamcheShadowSans/variable -type f 2>/dev/null); if [ -z "$$TOCHECK" ]; then TOCHECK=$$(find fonts/NamcheShadowSans/ttf -type f 2>/dev/null); fi ; . venv/bin/activate; mkdir -p out/ out/proof; diffenator2 proof $$TOCHECK -o out/proof
