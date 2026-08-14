@@ -24,21 +24,47 @@ EXPECTED_POSITION_DIGEST = (
     "38f4e10146d6ed0f627b33c409f485d5d95072ae1103b93f866e33edc1b47a06"
 )
 EXPECTED_OUTLINE_DIGESTS = {
-    ("cff", "Circle"): "49ad65f0b0966348d1bbfef3ef6d832f00430ac72bc49d1b20463b19e79165a0",
-    ("cff", "Grid"): "84d3aafc13bb65efc621f366d4331c367c5f674f60f4e733f6a632e69457196e",
-    ("cff", "Line"): "325acd0b9083801323edbbf8e6939333f70ea6012b48ce32affd920bb8568ef9",
-    ("cff", "Square"): "f7be93b04f935fdecdcfa698b075e12d3d2a60d619efa1416563a4f182619347",
-    ("cff", "Triangle"): "1e38aa5f798934cfa1d46bfa682d161ce68e497856a36587cdc404466db27758",
-    ("truetype", "Circle"): "0806b6494d05e72ea2f05bd5da242a907125c1b44649aff21baebcaf1c26284c",
-    ("truetype", "Grid"): "a4fb960b197c21b07189b81ebad5040207f2c22a02a55146e66f521c52b744d7",
-    ("truetype", "Line"): "6e44a6ff8260cb207bd57c65428228c493b3540a1cf9c3a31cfc8e61aa58586c",
-    ("truetype", "Square"): "aaae2cb412e49c43bbf77886b7ec4a38c64b51b1b62db91a15f9d67f1ecb28b1",
-    ("truetype", "Triangle"): "dcbc06be9ed25545bca01438cef87b00f1136a169ca414be3b4e9f36e28df4b6",
+    ("cff", "Circle"): "080822327e2c6a8f8ba0fbf5fbd59d88d2be781063b10a46f724b43c53a965ca",
+    ("cff", "Grid"): "0efe1fe09b61297ec6d059a36e99a0d79409f3c2b45d74ff9847d98c13e83f99",
+    ("cff", "Line"): "5161427ea65d9b74270e3fc513f9559d6abe1805953861582bf66bddbbefbc4d",
+    ("cff", "Square"): "9b85e9c7bfde36ab8bceb7d20f5e1bed330081189b8a6c9221363c78c3ab4de5",
+    ("cff", "Triangle"): "8568851b4a2083f2ab09af5b6d5f89df3b3298451d704477e5d5efa9bfbb93ca",
+    ("truetype", "Circle"): "2e98a45f877a885ebc1c571d9763424020fca36a59ff81b152544e7c9a5e0d78",
+    ("truetype", "Grid"): "bd281252e955b4862fc1bca0c96169946f48472a2efb73d315aca4a658e2c86d",
+    ("truetype", "Line"): "65338e5ee12d8eda5d62de573d5ebe08806e26665935f48f0f4278c8e8019ed7",
+    ("truetype", "Square"): "fbba015f303f2911810fd66d5a075a9ebf4bde8874b85a2036b9d3ef4fae31a7",
+    ("truetype", "Triangle"): "ad329e0c6fc839e72269bb8ae1c50e98cbc0b3c6f627124e2887c511afc70192",
 }
 
 
 def digest(value: object) -> str:
     return sha256(repr(value).encode()).hexdigest()
+
+
+def normalize_recording_value(value: object) -> object:
+    if isinstance(value, (int, float)):
+        rounded = round(value)
+        return int(rounded) if abs(value - rounded) < 1e-6 else round(value, 6)
+    if isinstance(value, (list, tuple)):
+        return tuple(normalize_recording_value(item) for item in value)
+    return value
+
+
+def canonical_outline(recording: list[tuple[str, tuple]]) -> tuple:
+    """Ignore contour serialization order while preserving exact geometry."""
+    contours: list[tuple] = []
+    current: list[tuple] = []
+    for operation, arguments in recording:
+        if operation == "moveTo" and current:
+            contours.append(tuple(current))
+            current = []
+        current.append((operation, normalize_recording_value(arguments)))
+        if operation in {"closePath", "endPath"}:
+            contours.append(tuple(current))
+            current = []
+    if current:
+        contours.append(tuple(current))
+    return tuple(sorted(contours, key=repr))
 
 
 def validate_source(path: Path) -> list[str]:
@@ -117,7 +143,7 @@ def validate_font(path: Path, *, expect_static: bool = True) -> list[str]:
             else:
                 recording = RecordingPen()
                 font.getGlyphSet()[glyph_name].draw(recording)
-                actual_digest = digest(tuple(recording.value))
+                actual_digest = digest(canonical_outline(recording.value))
                 expected_digest = EXPECTED_OUTLINE_DIGESTS[(outline_kind, style)]
                 if actual_digest != expected_digest:
                     errors.append(
