@@ -497,7 +497,7 @@ def render_issue_35() -> None:
     image, draw = canvas(
         35,
         "WWS FAMILY METADATA",
-        "Public family and style names stay unchanged; every binary now declares them WWS-conformant.",
+        "Public typographic names stay unchanged; every binary now carries spec-correct WWS metadata.",
         1320,
     )
     label = font(MONO_DIR / "NamcheShadowMono-Regular.ttf", 21)
@@ -520,8 +520,9 @@ def render_issue_35() -> None:
         draw.text((365, y), sample, font=font(path, 64), fill=TEXT)
         draw.text((750, y + 8), family, font=fit(path, family, 520, 34), fill=TEXT)
         draw.text((750, y + 61), style, font=fit(path, style, 520, 30), fill=MUTED)
-        valid = wws and not wws_names
-        status = "BIT 8 · NAMES 21/22 ABSENT"
+        pixel = path.parent.parent.name == "NamcheShadowPixel"
+        valid = (not wws and wws_names == {21, 22}) if pixel else (wws and not wws_names)
+        status = "NAMES 21/22 · BIT 8 CLEAR" if pixel else "BIT 8 · NAMES 21/22 ABSENT"
         draw.text((1240, y + 42), status if valid else "INVALID WWS", font=label, fill=GREEN if valid else RED)
     footer(draw, image.height, "Representative Sans, Mono, and Pixel TTF statics · OS/2 + name")
     image.save(OUTPUT / "issue-35-wws-metadata.png", optimize=True)

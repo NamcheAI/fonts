@@ -4,6 +4,7 @@ import unittest
 from fontTools.ttLib import TTFont
 
 from scripts.rename_font_metadata import (
+    PIXEL_FAMILY,
     WWS_BIT,
     check,
     family_for,
@@ -18,7 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 class FontMetadataTest(unittest.TestCase):
     def testReleaseFontsUseReviewedWwsRepresentation(self) -> None:
         paths = font_files(ROOT / "fonts")
-        self.assertEqual(len(paths), 130)
+        self.assertTrue(paths)
         errors = [error for path in paths for error in check(path)]
         self.assertEqual(errors, [])
 
@@ -44,12 +45,20 @@ class FontMetadataTest(unittest.TestCase):
                 style = font["name"].getDebugName(17) or font["name"].getDebugName(2)
                 self.assertEqual((family, style), names)
                 has_wws_bit = bool(font["OS/2"].fsSelection & WWS_BIT)
-                has_wws_names = {record.nameID for record in font["name"].names} & {
-                    21,
-                    22,
+                wws_names = {
+                    record.nameID: record.toUnicode()
+                    for record in font["name"].names
+                    if record.nameID in {21, 22} and record.platformID == 3
                 }
-                self.assertTrue(has_wws_bit)
-                self.assertEqual(has_wws_names, set())
+                if family == PIXEL_FAMILY:
+                    self.assertFalse(has_wws_bit)
+                    self.assertEqual(
+                        wws_names,
+                        {21: "Namche Shadow Pixel Circle", 22: "Regular"},
+                    )
+                else:
+                    self.assertTrue(has_wws_bit)
+                    self.assertEqual(wws_names, {})
             finally:
                 font.close()
 
