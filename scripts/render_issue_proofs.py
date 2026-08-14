@@ -435,6 +435,64 @@ def render_issue_32() -> None:
     image.save(OUTPUT / "issue-32-pixel-separators.png", optimize=True)
 
 
+def render_issue_33() -> None:
+    image, draw = canvas(
+        33,
+        "MONO HORIZONTAL METRICS",
+        "Current hmtx values are minimal without changing glyph order or mark advances.",
+        1450,
+    )
+    label = font(MONO_DIR / "NamcheShadowMono-Regular.ttf", 21)
+    regular = MONO_DIR / "NamcheShadowMono-Regular.ttf"
+    italic = MONO_DIR / "NamcheShadowMono-Italic.ttf"
+
+    def metric_summary(path: Path) -> tuple[int, int, int, int]:
+        ttfont = TTFont(path, recalcTimestamp=False)
+        order = ttfont.getGlyphOrder()
+        widths = [ttfont["hmtx"][name][0] for name in order]
+        result = (
+            ttfont["hmtx"][".notdef"][0],
+            widths.count(0),
+            widths.count(600),
+            ttfont["hhea"].numberOfHMetrics,
+        )
+        ttfont.close()
+        return result
+
+    section(draw, 340, "Rendered advances remain intentional")
+    draw.text((72, 410), "UPRIGHT", font=label, fill=MUTED)
+    draw.text((300, 385), "M W i m 0   á í į̌", font=font(regular, 78), fill=TEXT)
+    draw.text((72, 535), "ITALIC", font=label, fill=MUTED)
+    draw.text((300, 510), "M W i m 0   á í į̌", font=font(italic, 78), fill=TEXT)
+
+    section(draw, 670, "Why the compact value cannot be 3")
+    rows = (("UPRIGHT", metric_summary(regular)), ("ITALIC", metric_summary(italic)))
+    for index, (style, metrics) in enumerate(rows):
+        notdef_width, mark_count, common_count, current = metrics
+        y = 745 + index * 175
+        draw.text((72, y + 42), style, font=label, fill=MUTED)
+        draw.rounded_rectangle((280, y, 520, y + 105), 14, fill=YELLOW)
+        draw.rounded_rectangle((540, y, 840, y + 105), 14, fill=PURPLE)
+        draw.rounded_rectangle((860, y, 1180, y + 105), 14, fill=BLUE)
+        draw.text((315, y + 39), f".notdef {notdef_width}", font=label, fill=TEXT)
+        draw.text((580, y + 39), f"{mark_count} marks × 0", font=label, fill=TEXT)
+        draw.text((900, y + 39), f"{common_count} × 600", font=label, fill=TEXT)
+        draw.text((1240, y + 25), str(current), font=font(regular, 46), fill=GREEN)
+        draw.text((1240, y + 78), "MIN", font=label, fill=MUTED)
+
+    section(draw, 1110, "Decision", GREEN)
+    decision = "3 would change mark advances. 41 requires glyph reorder and still warns."
+    draw.text((72, 1180), decision, font=fit(regular, decision, 1456, 42), fill=TEXT)
+    draw.text(
+        (72, 1260),
+        "Retain the exact metrics, outlines, shaping, and glyph order; classify the WARN.",
+        font=label,
+        fill=MUTED,
+    )
+    footer(draw, image.height, "Mono Regular + Italic TTF · hhea.numberOfHMetrics / hmtx")
+    image.save(OUTPUT / "issue-33-mono-hmetrics.png", optimize=True)
+
+
 def main() -> None:
     if not features.check_feature("raqm"):
         raise SystemExit(
@@ -449,6 +507,7 @@ def main() -> None:
     render_issue_24()
     render_issue_25()
     render_issue_32()
+    render_issue_33()
     for path in sorted(OUTPUT.glob("issue-*.png")):
         print(f"Wrote {path.relative_to(ROOT)}")
 

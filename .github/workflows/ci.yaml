@@ -54,6 +54,8 @@ jobs:
         run: make build
       - name: Test validation scripts
         run: make test-scripts
+      - name: Check Mono horizontal metrics
+        run: make check-mono-hmetrics
       - name: Run fontspector baseline
         run: make fontspector
         continue-on-error: true
