@@ -15,6 +15,13 @@ FORBIDDEN_SHAPE_MESSAGES = (
     "Mandatory orthography codepoints",
     "Primary orthography codepoints",
 )
+AUXILIARY_MISSING_PREFIX = (
+    "The following auxiliary characters are missing from the font:"
+)
+ALLOWED_AUXILIARY_OMISSIONS = frozenset(
+    "Ǿ ǿ Ĕ ĕ Ĭ ĭ Ŀ ŀ Ŏ ŏ Ĳ ĳ Ȟ ȟ Ʒ ʒ Ǯ ǯ Ǔ ǔ ſ ʻ".split()
+)
+SANS_VARIABLE_ONLY_OMISSIONS = frozenset({"ѫ"})
 
 
 def checks_for(result: dict) -> dict[str, dict]:
@@ -57,6 +64,27 @@ def validate_report(path: Path) -> tuple[int, list[str]]:
         for forbidden in FORBIDDEN_SHAPE_MESSAGES:
             if forbidden in messages:
                 errors.append(f"{font_path}: retained real shaping warning: {forbidden}")
+        reported_auxiliary = set()
+        for line in messages.splitlines():
+            if AUXILIARY_MISSING_PREFIX not in line:
+                continue
+            value = line.split(AUXILIARY_MISSING_PREFIX, 1)[1]
+            value = value.split("|", 1)[0].strip().strip("`")
+            if not value:
+                errors.append(
+                    f"{font_path}: could not parse auxiliary omission from {line!r}"
+                )
+                continue
+            reported_auxiliary.update(value.split())
+        allowed_auxiliary = ALLOWED_AUXILIARY_OMISSIONS
+        if "NamcheShadowSans/variable/" in font_path:
+            allowed_auxiliary |= SANS_VARIABLE_ONLY_OMISSIONS
+        unexpected_auxiliary = sorted(reported_auxiliary - allowed_auxiliary)
+        if unexpected_auxiliary:
+            errors.append(
+                f"{font_path}: undocumented auxiliary omissions: "
+                f"{' '.join(unexpected_auxiliary)}"
+            )
 
     return checked, errors
 

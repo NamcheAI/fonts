@@ -1,5 +1,6 @@
 SOURCES=$(shell python3 scripts/read-config.py --sources )
 FAMILY=$(shell python3 scripts/read-config.py --family )
+SHAPING_REPORTS=out/fontspector/NamcheShadowSansVF-fontspector-report.json out/fontspector/NamcheShadowSans-fontspector-report.json out/fontspector/NamcheShadowMonoVF-fontspector-report.json out/fontspector/NamcheShadowMono-fontspector-report.json
 
 help:
 	@echo "###"
@@ -146,7 +147,12 @@ venv-pixel/touchfile: Makefile
 	. venv-pixel/bin/activate; pip install "gftools @ git+https://github.com/googlefonts/gftools@$(GFTOOLS_PIXEL_REF)"
 	touch venv-pixel/touchfile
 
-test: build.stamp
+test: fontspector check-language-shaping
+
+test-scripts: venv
+	. venv/bin/activate; python3 -m unittest discover -s tests -p 'test_*.py'
+
+fontspector: build.stamp
 	which fontspector || (echo "fontspector not found. Please install it with 'cargo install fontspector'." && exit 1)
 	rm -rf out/fontspector out/badges
 	mkdir -p out/fontspector out/badges
@@ -155,7 +161,9 @@ test: build.stamp
 	TOCHECK=$$(find fonts/NamcheShadowMono/variable -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowMonoVF-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowMono.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
 	TOCHECK=$$(find fonts/NamcheShadowMono/ttf -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowMono-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowMono.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
 	TOCHECK=$$(find fonts/NamcheShadowPixel/ttf -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowPixel-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowPixel.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
-	python3 scripts/check_language_shaping.py out/fontspector/NamcheShadowSansVF-fontspector-report.json out/fontspector/NamcheShadowSans-fontspector-report.json out/fontspector/NamcheShadowMonoVF-fontspector-report.json out/fontspector/NamcheShadowMono-fontspector-report.json
+
+check-language-shaping:
+	python3 scripts/check_language_shaping.py $(SHAPING_REPORTS)
 
 proof: venv build.stamp
 	TOCHECK=$$(find fonts/NamcheShadowSans/variable -type f 2>/dev/null); if [ -z "$$TOCHECK" ]; then TOCHECK=$$(find fonts/NamcheShadowSans/ttf -type f 2>/dev/null); fi ; . venv/bin/activate; mkdir -p out/ out/proof; diffenator2 proof $$TOCHECK -o out/proof

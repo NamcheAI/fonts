@@ -196,8 +196,10 @@ def check(path: Path) -> list[str]:
             or font["name"].getDebugName(1)
             or ""
         )
+        instance_styles = set()
         for instance in font["fvar"].instances:
             style = font["name"].getDebugName(instance.subfamilyNameID) or ""
+            instance_styles.add(style)
             combined = f"{family} {style}"
             if len(combined) > 32:
                 errors.append(
@@ -205,12 +207,23 @@ def check(path: Path) -> list[str]:
                     f"{combined!r}"
                 )
         aliases = VARIABLE_INSTANCE_NAME_ALIASES.get(human, {})
-        if aliases and "STAT" in font:
+        used_aliases = set(aliases.values()) & instance_styles
+        if used_aliases and "STAT" in font:
+            axis_value_array = font["STAT"].table.AxisValueArray
+            axis_values = (
+                axis_value_array.AxisValue
+                if axis_value_array is not None
+                else []
+            )
             stat_names = {
                 font["name"].getDebugName(axis_value.ValueNameID)
-                for axis_value in font["STAT"].table.AxisValueArray.AxisValue
+                for axis_value in axis_values
             }
-            full_stat_styles = {style.removesuffix(" Italic") for style in aliases}
+            full_stat_styles = {
+                style.removesuffix(" Italic")
+                for style, alias in aliases.items()
+                if alias in used_aliases
+            }
             missing = sorted(full_stat_styles - stat_names)
             if missing:
                 errors.append(

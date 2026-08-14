@@ -29,6 +29,10 @@ historical, transliteration, or auxiliary coverage. Adding any of these
 characters requires a separate design review rather than copying outlines from
 another font solely to silence a distributor profile.
 
+The upright Namche Shadow Sans variable font additionally parks `ѫ` until its
+rounded masters are interpolation-compatible. This exception does not apply to
+the Sans statics, which must continue to include the character in every weight.
+
 Run the focused `soft_dotted` and
 `googlefonts/glyphsets/shape_languages` Fontspector checks after any source or
 OpenType-layout change. The retained language-shaping warning should contain

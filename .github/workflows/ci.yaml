@@ -52,9 +52,13 @@ jobs:
 
       - name: Build font
         run: make build
-      - name: Check with fontspector
-        run: make test
+      - name: Test validation scripts
+        run: make test-scripts
+      - name: Run fontspector baseline
+        run: make fontspector
         continue-on-error: true
+      - name: Check language shaping
+        run: make check-language-shaping
       - name: Generate proofs
         run: make proof
       - name: Set up test result site
