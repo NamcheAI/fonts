@@ -43,12 +43,15 @@ vendor-ID, and sidebearing groups described below, plus:
 All nine named VF weights were compared with Michael's approved rounded
 statics for the five reported glyphs. Their sampled outlines stay within 5.76
 font units on a 1000-unit em. `scripts/check_sans_variable.py` keeps a 7-unit
-regression limit, samples the five glyphs at intermediate weights, and rejects
-empty or materially divergent outlines. The visual comparison is maintained
-in `documentation/issues/issue-22-variable-interpolation.png`: dark shapes are
-shared by the VF and static; blue/red fringes show their small segmentation
-and rounding differences. Do not move points merely to silence these
-heuristics; reopen design review if the proof or the guarded distance changes.
+regression limit and fingerprints the five glyphs' coordinates, curve flags,
+and contour endpoints at weights 150, 250, 350, 450, 550, 650, 750, and 850.
+This reviewed geometric baseline catches any intermediate shape change, not
+only empty glyphs. The visual comparison is maintained in
+`documentation/issues/issue-22-variable-interpolation.png`: dark shapes are
+shared by the VF and static; blue/red fringes show their small segmentation and
+rounding differences. Do not move points merely to silence these heuristics;
+reopen design review and regenerate the baseline if the proof, digest, or
+guarded distance changes.
 
 ## Warning groups
 
