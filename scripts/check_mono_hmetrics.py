@@ -4,14 +4,56 @@
 from __future__ import annotations
 
 import argparse
-from collections import Counter
 from pathlib import Path
 
 from fontTools.ttLib import TTFont
 
 
 EXPECTED_COUNTS = {"upright": 1139, "italic": 1128}
-EXPECTED_NONCOMMON_WIDTHS = Counter({0: 39, 500: 1})
+EXPECTED_ZERO_WIDTH_GLYPHS = {
+    "acutecomb",
+    "dotbelowcomb",
+    "dotbelowcomb.ss08",
+    "gravecomb",
+    "hookabovecomb",
+    "tildecomb",
+    "uni0302",
+    "uni03020300",
+    "uni03020301",
+    "uni03020303",
+    "uni03020309",
+    "uni0304",
+    "uni0306",
+    "uni03060300",
+    "uni03060301",
+    "uni03060303",
+    "uni03060309",
+    "uni0306.cy",
+    "uni0307",
+    "uni0307.ss08",
+    "uni0308",
+    "uni0308.ss08",
+    "uni030A",
+    "uni030B",
+    "uni030C",
+    "uni030C.alt",
+    "uni0312",
+    "uni031B",
+    "uni0326",
+    "uni0326.loclMAH",
+    "uni0327",
+    "uni0328",
+    "uni0335",
+    "uni0335.case",
+    "uni0336",
+    "uni0337",
+    "uni0337.case",
+    "uni0338",
+    "uni0338.case",
+}
+EXPECTED_EXCEPTIONAL_ADVANCES = {".notdef": 500} | {
+    name: 0 for name in EXPECTED_ZERO_WIDTH_GLYPHS
+}
 EXPECTED_FILE_COUNT = 80
 
 
@@ -44,14 +86,15 @@ def validate_font(path: Path) -> list[str]:
                 f"{path}: numberOfHMetrics {actual} differs from the reviewed "
                 f"{orientation} baseline {expected}"
             )
-        width_counts = Counter(widths)
-        noncommon = Counter(
-            {width: count for width, count in width_counts.items() if width != 600}
-        )
-        if noncommon != EXPECTED_NONCOMMON_WIDTHS:
+        exceptional_advances = {
+            name: width
+            for name, width in zip(order, widths, strict=True)
+            if width != 600
+        }
+        if exceptional_advances != EXPECTED_EXCEPTIONAL_ADVANCES:
             errors.append(
-                f"{path}: non-600 advance inventory changed from "
-                f"{dict(EXPECTED_NONCOMMON_WIDTHS)} to {dict(noncommon)}"
+                f"{path}: glyph-specific non-600 advances differ from the "
+                "reviewed baseline"
             )
     finally:
         font.close()
