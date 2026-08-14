@@ -50,6 +50,7 @@ build.stamp: venv venv-pixel sources/config-NamcheShadowSans.yaml $(SOURCES)
 	# artifacts use the approved outlines.
 	git checkout -- fonts/NamcheShadowSans/otf fonts/NamcheShadowSans/ttf fonts/NamcheShadowSans/webfonts fonts/NamcheShadowSans/variable
 	git checkout -- fonts/NamcheShadowPixel/otf fonts/NamcheShadowPixel/ttf fonts/NamcheShadowPixel/webfonts
+	. venv/bin/activate; python3 scripts/finalize_pixel_statics.py fonts/NamcheShadowPixel
 	# Sans metadata was finalized with the native exports; leave those committed
 	# files byte-for-byte intact. Normalize only families generated in this run.
 	. venv/bin/activate; python3 scripts/rename_font_metadata.py fonts/NamcheShadowMono
@@ -148,7 +149,7 @@ venv-pixel/touchfile: Makefile
 	. venv-pixel/bin/activate; pip install "gftools @ git+https://github.com/googlefonts/gftools@$(GFTOOLS_PIXEL_REF)"
 	touch venv-pixel/touchfile
 
-test: fontspector check-language-shaping
+test: fontspector check-language-shaping check-pixel-separators
 
 test-scripts: venv
 	. venv/bin/activate; python3 -m unittest discover -s tests -p 'test_*.py'
@@ -165,6 +166,9 @@ fontspector: build.stamp
 
 check-language-shaping:
 	python3 scripts/check_language_shaping.py $(foreach dir,$(SHAPING_FONT_DIRS),--font-dir $(dir)) $(SHAPING_REPORTS)
+
+check-pixel-separators: venv build.stamp
+	. venv/bin/activate; python3 scripts/check_pixel_separators.py
 
 proof: venv build.stamp
 	TOCHECK=$$(find fonts/NamcheShadowSans/variable -type f 2>/dev/null); if [ -z "$$TOCHECK" ]; then TOCHECK=$$(find fonts/NamcheShadowSans/ttf -type f 2>/dev/null); fi ; . venv/bin/activate; mkdir -p out/ out/proof; diffenator2 proof $$TOCHECK -o out/proof
