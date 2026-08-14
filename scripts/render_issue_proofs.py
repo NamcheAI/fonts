@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from fontTools.pens.boundsPen import BoundsPen
 from fontTools.ttLib import TTFont
 from PIL import Image, ImageChops, ImageDraw, ImageFont, features
 
@@ -392,6 +393,48 @@ def render_issue_25() -> None:
     image.save(OUTPUT / "issue-25-pixel-metadata.png", optimize=True)
 
 
+def render_issue_32() -> None:
+    image, draw = canvas(
+        32,
+        "INVISIBLE SEPARATORS",
+        "The two encoded glyphs have a 600-unit advance and deliberately contain no ink.",
+        1320,
+    )
+    label = font(MONO_DIR / "NamcheShadowMono-Regular.ttf", 20)
+    headings = ((0x2028, "LINE SEPARATOR"), (0x2029, "PARAGRAPH SEPARATOR"))
+    for column, (codepoint, title) in enumerate(headings):
+        x = 310 + column * 620
+        draw.text((x, 350), f"U+{codepoint:04X}  {title}", font=label, fill=MUTED)
+
+    for row, style in enumerate(("Circle", "Grid", "Line", "Square", "Triangle")):
+        path = PIXEL_DIR / f"NamcheShadowPixel-{style}.ttf"
+        ttfont = TTFont(path, recalcTimestamp=False)
+        cmap = ttfont.getBestCmap() or {}
+        y = 415 + row * 155
+        draw.text((72, y + 48), style.upper(), font=label, fill=MUTED)
+        for column, (codepoint, _) in enumerate(headings):
+            glyph_name = cmap[codepoint]
+            width, left_sidebearing = ttfont["hmtx"][glyph_name]
+            pen = BoundsPen(ttfont.getGlyphSet())
+            ttfont.getGlyphSet()[glyph_name].draw(pen)
+            x = 310 + column * 620
+            draw.rounded_rectangle((x, y, x + 520, y + 112), 14, outline=BLUE, width=4)
+            draw.line((x + 20, y + 78, x + 500, y + 78), fill=LINE, width=2)
+            draw.text((x + 24, y + 18), glyph_name, font=label, fill=TEXT)
+            status = f"advance {width} · lsb {left_sidebearing} · {'NO INK' if pen.bounds is None else 'HAS INK'}"
+            draw.text((x + 24, y + 82), status, font=label, fill=GREEN if pen.bounds is None else RED)
+        ttfont.close()
+
+    draw.text(
+        (72, 1210),
+        "The blue frames visualize each otherwise invisible character cell.",
+        font=label,
+        fill=MUTED,
+    )
+    footer(draw, image.height, "All five Namche Shadow Pixel TTF statics · U+2028 / U+2029")
+    image.save(OUTPUT / "issue-32-pixel-separators.png", optimize=True)
+
+
 def main() -> None:
     if not features.check_feature("raqm"):
         raise SystemExit(
@@ -405,6 +448,7 @@ def main() -> None:
     render_issue_23_outlines()
     render_issue_24()
     render_issue_25()
+    render_issue_32()
     for path in sorted(OUTPUT.glob("issue-*.png")):
         print(f"Wrote {path.relative_to(ROOT)}")
 

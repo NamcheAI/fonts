@@ -83,7 +83,7 @@ and `documentation/issues/issue-23-outline-heuristics.png`.
 | `math_signs_width` | Intentional design choice | Sans is proportional, Mono already uses its monospaced advance, and Pixel keeps the inherited shape-specific widths. Do not normalize spacing merely to match the most common glyph width. |
 | Mono `opentype/monospace` | Binary optimization | Compact the redundant `hhea.numberOfHMetrics` representation without changing advances or sidebearings in [#33](https://github.com/NamcheAI/namche-shadow-font/issues/33). |
 | `opentype/fsselection_wws` | Metadata defect | Make the maintained WWS metadata spec-correct across all three families in [#35](https://github.com/NamcheAI/namche-shadow-font/issues/35). |
-| Pixel `separator_glyphs` | Export feature defect | The source already has inkless U+2028/U+2029 glyphs; preserve them in release exports in [#32](https://github.com/NamcheAI/namche-shadow-font/issues/32). |
+| Pixel `separator_glyphs` | Resolved export defect | The source and every static release/npm font preserve inkless U+2028/U+2029 glyphs at the reviewed 600-unit width. `make check-pixel-separators` blocks regressions ([#32](https://github.com/NamcheAI/namche-shadow-font/issues/32)). |
 | Pixel `rupee` | Missing glyph feature | Design and ship **₹** for all five Pixel styles in [#34](https://github.com/NamcheAI/namche-shadow-font/issues/34). |
 | Pixel `dotted_circle`, required `soft_dotted` | Shaping/design feature | Add **◌** and correct **į́ į̌ į̀ į̃ į̄ į̂** behavior in [#36](https://github.com/NamcheAI/namche-shadow-font/issues/36). |
 | Pixel `ligature_carets` | Export feature defect | Preserve the existing source caret anchors for **ﬁ ﬂ** in GDEF in [#37](https://github.com/NamcheAI/namche-shadow-font/issues/37). |
