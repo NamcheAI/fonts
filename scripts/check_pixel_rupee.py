@@ -12,6 +12,7 @@ from fontTools.pens.basePen import NullPen
 from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.recordingPen import RecordingPen
 from fontTools.ttLib import TTFont
+from fontTools.varLib.instancer import instantiateVariableFont
 
 
 CODEPOINT = 0x20B9
@@ -34,6 +35,14 @@ EXPECTED_OUTLINE_DIGESTS = {
     ("truetype", "Line"): "65338e5ee12d8eda5d62de573d5ebe08806e26665935f48f0f4278c8e8019ed7",
     ("truetype", "Square"): "fbba015f303f2911810fd66d5a075a9ebf4bde8874b85a2036b9d3ef4fae31a7",
     ("truetype", "Triangle"): "ad329e0c6fc839e72269bb8ae1c50e98cbc0b3c6f627124e2887c511afc70192",
+}
+EXPECTED_VARIABLE_INSTANCES = {
+    "Regular": (0.0, "c3789c5bdae6d45fdb742a6c98ab112ebce44130d6c85e9b35dff0e344441a1d"),
+    "Square": (1.0, "c3789c5bdae6d45fdb742a6c98ab112ebce44130d6c85e9b35dff0e344441a1d"),
+    "Circle": (20.0, "629b7a6c296289d8c7f27c8591f88d7a8a2e5b22e1281682f977571ebc454b36"),
+    "Grid": (40.0, "249802b2f4dcfa9ac94050dd14888b0f9fe3aa70e1d77697cff45a2379011fac"),
+    "Triangle": (60.0, "bda559c76ab60a68c51c4b0162771c475ac1a7182e5b70600c22e9b77f76f08a"),
+    "Line": (80.0, "0f7bec49140d86c1a008ad350eadd41eaec94290b1897d373af6d20f987b82af"),
 }
 
 
@@ -65,6 +74,49 @@ def canonical_outline(recording: list[tuple[str, tuple]]) -> tuple:
     if current:
         contours.append(tuple(current))
     return tuple(sorted(contours, key=repr))
+
+
+def outline_digest(font: TTFont, glyph_name: str) -> str:
+    recording = RecordingPen()
+    font.getGlyphSet()[glyph_name].draw(recording)
+    return digest(canonical_outline(recording.value))
+
+
+def validate_variable_instances(font: TTFont, path: Path) -> list[str]:
+    errors: list[str] = []
+    instances = {}
+    for instance in font["fvar"].instances:
+        name = font["name"].getDebugName(instance.subfamilyNameID)
+        if name:
+            instances[name] = instance
+    if set(instances) != set(EXPECTED_VARIABLE_INSTANCES):
+        errors.append(
+            f"{path}: Pixel variable instances are {sorted(instances)!r}, "
+            f"expected {sorted(EXPECTED_VARIABLE_INSTANCES)!r}"
+        )
+        return errors
+
+    for name, (expected_location, expected_digest) in EXPECTED_VARIABLE_INSTANCES.items():
+        instance = instances[name]
+        location = instance.coordinates.get("ELSH")
+        if location != expected_location:
+            errors.append(
+                f"{path}: {name} ELSH location is {location}, "
+                f"expected {expected_location}"
+            )
+            continue
+        instance_font = instantiateVariableFont(
+            font, dict(instance.coordinates), inplace=False, optimize=True
+        )
+        try:
+            glyph_name = (instance_font.getBestCmap() or {}).get(CODEPOINT)
+            if glyph_name is None:
+                errors.append(f"{path}: {name} instance is missing U+20B9 ₹")
+            elif outline_digest(instance_font, glyph_name) != expected_digest:
+                errors.append(f"{path}: U+20B9 {name} variable outline changed")
+        finally:
+            instance_font.close()
+    return errors
 
 
 def validate_source(path: Path) -> list[str]:
@@ -141,9 +193,7 @@ def validate_font(path: Path, *, expect_static: bool = True) -> list[str]:
             if style is None:
                 errors.append(f"{path}: cannot identify Pixel style from filename")
             else:
-                recording = RecordingPen()
-                font.getGlyphSet()[glyph_name].draw(recording)
-                actual_digest = digest(canonical_outline(recording.value))
+                actual_digest = outline_digest(font, glyph_name)
                 expected_digest = EXPECTED_OUTLINE_DIGESTS[(outline_kind, style)]
                 if actual_digest != expected_digest:
                     errors.append(
@@ -153,6 +203,8 @@ def validate_font(path: Path, *, expect_static: bool = True) -> list[str]:
             errors.append(f"{path}: Pixel static unexpectedly contains fvar")
         if not expect_static and "fvar" not in font:
             errors.append(f"{path}: Pixel variable font is missing fvar")
+        elif not expect_static:
+            errors.extend(validate_variable_instances(font, path))
     finally:
         font.close()
     return errors

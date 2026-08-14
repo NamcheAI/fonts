@@ -23,6 +23,13 @@ PIXEL_FIXTURES = (
 PIXEL_GRID_OTF = (
     ROOT / "fonts" / "NamcheShadowPixel" / "otf" / "NamcheShadowPixel-Grid.otf"
 )
+PIXEL_VARIABLE = (
+    ROOT
+    / "fonts"
+    / "NamcheShadowPixel"
+    / "variable"
+    / "NamcheShadowPixel[ELSH].ttf"
+)
 
 
 def remove_rupee_mapping(source: Path, output: Path) -> None:
@@ -95,6 +102,22 @@ class PixelRupeeTest(unittest.TestCase):
 
         self.assertEqual(len(errors), 1)
         self.assertIn("Circle cff outline changed", errors[0])
+
+    def testVariableInstanceLocationsArePinned(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / PIXEL_VARIABLE.name
+            font = TTFont(PIXEL_VARIABLE, recalcTimestamp=False)
+            circle = next(
+                instance
+                for instance in font["fvar"].instances
+                if font["name"].getDebugName(instance.subfamilyNameID) == "Circle"
+            )
+            circle.coordinates["ELSH"] = 21.0
+            font.save(path, reorderTables=False)
+            font.close()
+            errors = validate_font(path, expect_static=False)
+
+        self.assertTrue(any("Circle ELSH location is 21" in error for error in errors))
 
     def testFinalizerRestoresEveryStaticFormatIdempotently(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
