@@ -493,6 +493,40 @@ def render_issue_33() -> None:
     image.save(OUTPUT / "issue-33-mono-hmetrics.png", optimize=True)
 
 
+def render_issue_35() -> None:
+    image, draw = canvas(
+        35,
+        "WWS FAMILY METADATA",
+        "Public family and style names stay unchanged; every binary now declares them WWS-conformant.",
+        1320,
+    )
+    label = font(MONO_DIR / "NamcheShadowMono-Regular.ttf", 21)
+    rows = [
+        ("SANS REGULAR", SANS_DIR / "NamcheShadowSans-Regular.ttf", "Aa 0123"),
+        ("SANS BOLD ITALIC", SANS_DIR / "NamcheShadowSans-BoldItalic.ttf", "Aa 0123"),
+        ("MONO REGULAR", MONO_DIR / "NamcheShadowMono-Regular.ttf", "Aa 0123"),
+        ("MONO BOLD ITALIC", MONO_DIR / "NamcheShadowMono-BoldItalic.ttf", "Aa 0123"),
+        ("PIXEL CIRCLE", PIXEL_DIR / "NamcheShadowPixel-Circle.ttf", "Aa 0123"),
+    ]
+    for index, (title, path, sample) in enumerate(rows):
+        ttfont = TTFont(path, lazy=True)
+        family = ttfont["name"].getDebugName(16) or ttfont["name"].getDebugName(1) or ""
+        style = ttfont["name"].getDebugName(17) or ttfont["name"].getDebugName(2) or ""
+        wws = bool(ttfont["OS/2"].fsSelection & (1 << 8))
+        wws_names = {record.nameID for record in ttfont["name"].names} & {21, 22}
+        ttfont.close()
+        y = 350 + index * 165
+        draw.text((72, y + 44), title, font=label, fill=MUTED)
+        draw.text((365, y), sample, font=font(path, 64), fill=TEXT)
+        draw.text((750, y + 8), family, font=fit(path, family, 520, 34), fill=TEXT)
+        draw.text((750, y + 61), style, font=fit(path, style, 520, 30), fill=MUTED)
+        valid = wws and not wws_names
+        status = "BIT 8 · NAMES 21/22 ABSENT"
+        draw.text((1240, y + 42), status if valid else "INVALID WWS", font=label, fill=GREEN if valid else RED)
+    footer(draw, image.height, "Representative Sans, Mono, and Pixel TTF statics · OS/2 + name")
+    image.save(OUTPUT / "issue-35-wws-metadata.png", optimize=True)
+
+
 def main() -> None:
     if not features.check_feature("raqm"):
         raise SystemExit(
@@ -508,6 +542,7 @@ def main() -> None:
     render_issue_25()
     render_issue_32()
     render_issue_33()
+    render_issue_35()
     for path in sorted(OUTPUT.glob("issue-*.png")):
         print(f"Wrote {path.relative_to(ROOT)}")
 
