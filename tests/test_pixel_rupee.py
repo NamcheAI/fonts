@@ -13,7 +13,8 @@ ROOT = Path(__file__).resolve().parent.parent
 PIXEL_SOURCE = ROOT / "sources" / "NamcheShadowPixel.glyphspackage"
 # Release binaries are intentional source-controlled fixtures. Font changes
 # commit regenerated artifacts with their sources, so these unit tests can run
-# against a fresh checkout without forcing the full font build first.
+# against a fresh checkout without forcing the full font build first. They must
+# already contain U+20B9 before this suite starts.
 PIXEL_FIXTURES = (
     ROOT / "fonts" / "NamcheShadowPixel" / "otf" / "NamcheShadowPixel-Circle.otf",
     ROOT / "fonts" / "NamcheShadowPixel" / "ttf" / "NamcheShadowPixel-Circle.ttf",
