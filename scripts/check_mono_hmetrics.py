@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from itertools import product
 from pathlib import Path
 
 from fontTools.ttLib import TTFont
@@ -70,12 +71,27 @@ def minimum_metric_count(widths: list[int]) -> int:
 def variable_locations(font: TTFont) -> list[dict[str, float]]:
     if "fvar" not in font:
         return []
-    defaults = {axis.axisTag: axis.defaultValue for axis in font["fvar"].axes}
-    locations = [defaults]
+    axes = font["fvar"].axes
+    defaults = {axis.axisTag: axis.defaultValue for axis in axes}
+    locations = [{axis.axisTag: 0.0 for axis in axes}]
     for axis in font["fvar"].axes:
         for value in (axis.minValue, axis.maxValue):
-            locations.append(defaults | {axis.axisTag: value})
-    locations.extend(instance.coordinates for instance in font["fvar"].instances)
+            locations.append(font.normalizeLocation(defaults | {axis.axisTag: value}))
+    locations.extend(
+        font.normalizeLocation(instance.coordinates)
+        for instance in font["fvar"].instances
+    )
+    if "HVAR" in font:
+        regions = font["HVAR"].table.VarStore.VarRegionList.Region
+        for region in regions:
+            breakpoints = [
+                {axis.StartCoord, axis.PeakCoord, axis.EndCoord}
+                for axis in region.VarRegionAxis
+            ]
+            locations.extend(
+                dict(zip((axis.axisTag for axis in axes), coordinates, strict=True))
+                for coordinates in product(*breakpoints)
+            )
     return list({tuple(sorted(location.items())): location for location in locations}.values())
 
 
@@ -85,7 +101,9 @@ def exceptional_advances(
     if location is None:
         widths = (font["hmtx"][name][0] for name in order)
     else:
-        glyph_set = font.getGlyphSet(location=location, recalcBounds=False)
+        glyph_set = font.getGlyphSet(
+            location=location, normalized=True, recalcBounds=False
+        )
         widths = (glyph_set[name].width for name in order)
     return {
         name: width
@@ -123,7 +141,8 @@ def validate_font(path: Path) -> list[str]:
             instance_advances = exceptional_advances(font, order, location)
             if instance_advances != EXPECTED_EXCEPTIONAL_ADVANCES:
                 errors.append(
-                    f"{path}: HVAR-adjusted advances at {location} differ from "
+                    f"{path}: HVAR-adjusted advances at normalized location "
+                    f"{location} differ from "
                     "the reviewed glyph-specific baseline"
                 )
     finally:

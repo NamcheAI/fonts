@@ -29,14 +29,24 @@ class MonoHorizontalMetricTest(unittest.TestCase):
         self.assertEqual(EXPECTED_EXCEPTIONAL_ADVANCES["acutecomb"], 0)
         self.assertEqual(len(EXPECTED_EXCEPTIONAL_ADVANCES), 40)
 
-    def testVariableLocationsIncludeInstancesAndAxisExtremes(self) -> None:
+    def testVariableLocationsIncludeInstancesExtremesAndHvarRegions(self) -> None:
         from fontTools.ttLib import TTFont
 
         font = TTFont(MONO_VF / "NamcheShadowMono[wght].ttf")
         try:
             locations = variable_locations(font)
             weights = {location["wght"] for location in locations}
-            self.assertEqual(weights, {100, 200, 300, 400, 500, 600, 700, 800, 900})
+            for instance in font["fvar"].instances:
+                self.assertIn(font.normalizeLocation(instance.coordinates)["wght"], weights)
+            self.assertIn(-1.0, weights)
+            self.assertIn(0.0, weights)
+            self.assertIn(1.0, weights)
+            for region in font["HVAR"].table.VarStore.VarRegionList.Region:
+                support = region.VarRegionAxis[0]
+                self.assertTrue(
+                    {support.StartCoord, support.PeakCoord, support.EndCoord}
+                    <= weights
+                )
             order = font.getGlyphOrder()
             for location in locations:
                 self.assertEqual(
