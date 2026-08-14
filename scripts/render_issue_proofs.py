@@ -6,7 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fontTools.ttLib import TTFont
-from PIL import Image, ImageDraw, ImageFont, features
+from PIL import Image, ImageChops, ImageDraw, ImageFont, features
 
 
 WIDTH = 1600
@@ -192,25 +192,69 @@ def render_issue_22() -> None:
     image, draw = canvas(
         22,
         "VARIABLE INTERPOLATION",
-        "Reported glyphs rendered across the full Namche Shadow Sans weight axis.",
-        1450,
+        "Blue = VF only; red = static only; dark areas overlap.",
+        1500,
     )
-    glyphs = [("ţ", "uni0163"), ("ª", "ordfeminine"), ("Ѳ", "uni0472"), ("ө", "uni04E9"), ("&", "ampersand")]
-    weights = [100, 200, 400, 700, 900]
+    glyphs = [
+        ("ţ", "uni0163"),
+        ("ª", "ordfeminine"),
+        ("Ѳ", "uni0472"),
+        ("ө", "uni04E9"),
+        ("&", "ampersand"),
+    ]
+    weights = [
+        (100, "Thin"),
+        (200, "ExtraLight"),
+        (300, "Light"),
+        (400, "Regular"),
+        (500, "Medium"),
+        (600, "SemiBold"),
+        (700, "Bold"),
+        (800, "ExtraBold"),
+        (900, "Black"),
+    ]
     label = font(MONO_DIR / "NamcheShadowMono-Regular.ttf", 20)
-    for column, weight in enumerate(weights):
-        x = 245 + column * 260
-        draw.text((x + 55, 345), str(weight), font=label, fill=MUTED)
+    cell_width = 137
+    cell_height = 150
+    grid_x = 275
+    for column, (weight, _) in enumerate(weights):
+        x = grid_x + column * cell_width
+        draw.text((x + 48, 355), str(weight), font=label, fill=MUTED)
     for row, (character, glyph_name) in enumerate(glyphs):
         y = 405 + row * 185
-        draw.text((72, y + 68), glyph_name, font=label, fill=MUTED)
-        for column, weight in enumerate(weights):
-            x = 245 + column * 260
-            variable = font(SANS_VF, 148, weight)
-            box = draw.textbbox((0, 0), character, font=variable)
-            glyph_width = box[2] - box[0]
-            draw.text((x + (190 - glyph_width) / 2, y), character, font=variable, fill=TEXT)
-    footer(draw, image.height, "NamcheShadowSans[wght].ttf · weights 100, 200, 400, 700, 900")
+        draw.text((72, y + 60), glyph_name, font=label, fill=MUTED)
+        for column, (weight, style) in enumerate(weights):
+            variable_mask = Image.new("L", (cell_width, cell_height))
+            static_mask = Image.new("L", (cell_width, cell_height))
+            variable = font(SANS_VF, 112, weight)
+            static = font(SANS_DIR / f"NamcheShadowSans-{style}.ttf", 112)
+            ImageDraw.Draw(variable_mask).text(
+                (cell_width / 2, cell_height / 2),
+                character,
+                font=variable,
+                fill=255,
+                anchor="mm",
+            )
+            ImageDraw.Draw(static_mask).text(
+                (cell_width / 2, cell_height / 2),
+                character,
+                font=static,
+                fill=255,
+                anchor="mm",
+            )
+            overlap = ImageChops.darker(variable_mask, static_mask)
+            variable_only = ImageChops.subtract(variable_mask, static_mask)
+            static_only = ImageChops.subtract(static_mask, variable_mask)
+            cell = Image.new("RGB", (cell_width, cell_height), BACKGROUND)
+            cell.paste(TEXT, mask=overlap)
+            cell.paste(BLUE, mask=variable_only)
+            cell.paste(RED, mask=static_only)
+            image.paste(cell, (grid_x + column * cell_width, y))
+    footer(
+        draw,
+        image.height,
+        "Sans VF versus all nine approved upright statics · 1000 units per em",
+    )
     image.save(OUTPUT / "issue-22-variable-interpolation.png", optimize=True)
 
 

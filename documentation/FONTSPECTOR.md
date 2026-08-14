@@ -25,7 +25,7 @@ listed in [`LANGUAGE_SUPPORT.md`](LANGUAGE_SUPPORT.md).
 | Mono italic variable | `googlefonts/fvar_instances` | The three Word-compatible named-instance aliases intentionally differ from the full STAT weight labels. This satisfies the universal 32-character family-and-style limit while preserving the public typographic names, but it would block a Google Fonts submission. |
 | Pixel statics | `font_names/unsupported-style` | Circle, Grid, Line, Square, and Triangle are custom Pixel styles; the Google Fonts profile expects conventional weight/style names. This is expected for the current product model but would block a Google Fonts submission. |
 
-Namche Shadow Sans VF currently has **no Fontspector failures**. Its 27 warning
+Namche Shadow Sans VF currently has **no Fontspector failures**. Its 26 warning
 results are the existing outline, glyph-reachability, language-shaping, WWS,
 vendor-ID, and sidebearing groups described below, plus:
 
@@ -33,8 +33,25 @@ vendor-ID, and sidebearing groups described below, plus:
   substantially smaller).
 - `mandatory_avar_table`: the `wght` axis intentionally uses a linear mapping.
 - `interpolation_issues`: heuristic kink/start-point findings in a small set of
-  inherited rounded glyphs. The builder's structural and named-master checks
-  plus explicit visual inspection remain the release gate for these shapes.
+  inherited rounded glyphs. The reviewed baseline is `uni0163`,
+  `ordfeminine`, `uni0472`, `uni04E9`, and `ampersand`; any newly reported
+  glyph is a regression until reviewed. The `uni0163` start-point report is a
+  cyclic contour-start choice and cannot change the rendered outline. The kink
+  markers identify intended curves that remain visually smooth through the
+  weight axis.
+
+All nine named VF weights were compared with Michael's approved rounded
+statics for the five reported glyphs. Their sampled outlines stay within 5.76
+font units on a 1000-unit em. `scripts/check_sans_variable.py` keeps a 7-unit
+regression limit and fingerprints the five glyphs' coordinates, curve flags,
+and contour endpoints at weights 150, 250, 350, 450, 550, 650, 750, and 850.
+This reviewed geometric baseline catches any intermediate shape change, not
+only empty glyphs. The visual comparison is maintained in
+`documentation/issues/issue-22-variable-interpolation.png`: dark shapes are
+shared by the VF and static; blue/red fringes show their small segmentation and
+rounding differences. Do not move points merely to silence these heuristics;
+reopen design review and regenerate the baseline if the proof, digest, or
+guarded distance changes.
 
 ## Warning groups
 
