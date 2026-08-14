@@ -67,6 +67,33 @@ def minimum_metric_count(widths: list[int]) -> int:
     return count
 
 
+def variable_locations(font: TTFont) -> list[dict[str, float]]:
+    if "fvar" not in font:
+        return []
+    defaults = {axis.axisTag: axis.defaultValue for axis in font["fvar"].axes}
+    locations = [defaults]
+    for axis in font["fvar"].axes:
+        for value in (axis.minValue, axis.maxValue):
+            locations.append(defaults | {axis.axisTag: value})
+    locations.extend(instance.coordinates for instance in font["fvar"].instances)
+    return list({tuple(sorted(location.items())): location for location in locations}.values())
+
+
+def exceptional_advances(
+    font: TTFont, order: list[str], location: dict[str, float] | None = None
+) -> dict[str, int | float]:
+    if location is None:
+        widths = (font["hmtx"][name][0] for name in order)
+    else:
+        glyph_set = font.getGlyphSet(location=location, recalcBounds=False)
+        widths = (glyph_set[name].width for name in order)
+    return {
+        name: width
+        for name, width in zip(order, widths, strict=True)
+        if width != 600
+    }
+
+
 def validate_font(path: Path) -> list[str]:
     errors: list[str] = []
     font = TTFont(path, recalcTimestamp=False)
@@ -86,16 +113,19 @@ def validate_font(path: Path) -> list[str]:
                 f"{path}: numberOfHMetrics {actual} differs from the reviewed "
                 f"{orientation} baseline {expected}"
             )
-        exceptional_advances = {
-            name: width
-            for name, width in zip(order, widths, strict=True)
-            if width != 600
-        }
-        if exceptional_advances != EXPECTED_EXCEPTIONAL_ADVANCES:
+        default_advances = exceptional_advances(font, order)
+        if default_advances != EXPECTED_EXCEPTIONAL_ADVANCES:
             errors.append(
                 f"{path}: glyph-specific non-600 advances differ from the "
                 "reviewed baseline"
             )
+        for location in variable_locations(font):
+            instance_advances = exceptional_advances(font, order, location)
+            if instance_advances != EXPECTED_EXCEPTIONAL_ADVANCES:
+                errors.append(
+                    f"{path}: HVAR-adjusted advances at {location} differ from "
+                    "the reviewed glyph-specific baseline"
+                )
     finally:
         font.close()
     return errors
