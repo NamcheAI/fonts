@@ -66,8 +66,8 @@ guarded distance changes.
 - Metadata warnings cover STAT setup, vendor registration, name length, and
   family metadata. These are suitable for focused cleanup PRs rather than
   being mixed into a design-source update.
-- Design-consistency warnings such as math-sign widths and ligature carets need
-  a designer/type-engineer decision before changing outlines or metrics.
+- Design-consistency warnings such as math-sign widths need a designer/type-
+  engineer decision before changing outlines or metrics.
 
 ## Reviewed maintenance triage
 
@@ -86,7 +86,7 @@ and `documentation/issues/issue-23-outline-heuristics.png`.
 | Pixel `separator_glyphs` | Resolved export defect | The source and every static release/npm font preserve inkless U+2028/U+2029 glyphs at the reviewed 600-unit width. `make check-pixel-separators` blocks regressions ([#32](https://github.com/NamcheAI/namche-shadow-font/issues/32)). |
 | Pixel `rupee` | Missing glyph feature | Design and ship **₹** for all five Pixel styles in [#34](https://github.com/NamcheAI/namche-shadow-font/issues/34). |
 | Pixel `dotted_circle`, required `soft_dotted` | Shaping/design feature | Add **◌** and correct **į́ į̌ į̀ į̃ į̄ į̂** behavior in [#36](https://github.com/NamcheAI/namche-shadow-font/issues/36). |
-| Pixel `ligature_carets` | Export feature defect | Preserve the existing source caret anchors for **ﬁ ﬂ** in GDEF in [#37](https://github.com/NamcheAI/namche-shadow-font/issues/37). |
+| Pixel `ligature_carets` | Resolved export defect | Every static release/npm font now carries all five source-defined GDEF caret records, including `caret_1 = 342` for **ﬁ ﬂ**. The Pixel finalizer derives them from the maintained Glyphs source, preserves any other caret records, and the binary check blocks regressions ([#37](https://github.com/NamcheAI/namche-shadow-font/issues/37)). |
 | `valid_glyphnames` | Intentional internal naming choice | The release warnings are limited to `asciitilde_asciitilde_greater.liga`, `hyphen_hyphen_hyphen_greater.liga`, `numbersign_numbersign_numbersign.liga`, and `periodcentered.loclCAT.case.ss08`. They are inherited internal GSUB ligature/alternate names. Long descriptive source names for encoded box/block characters are compiled to production `uniXXXX` names and are not part of this warning baseline. Renaming the reported internal names would churn source/GSUB references for a legacy recommendation, with no public API benefit. |
 | `unreachable_glyphs`, `unreachable_subsetting` | Source/distributor profile choice | Unencoded working/component glyphs remain available to the source, while this npm/direct-download project has no Google Fonts `METADATA.pb` subset-serving contract. Treat count increases as regressions, but do not remove the baseline solely for this profile. |
 | Pixel `soft_hyphen` | Intentional compatibility choice | Retain encoded U+00AD; its presence conflicts with current Google Fonts policy but is valid for the direct font distribution. |

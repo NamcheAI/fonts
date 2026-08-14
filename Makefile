@@ -150,7 +150,8 @@ venv-pixel/touchfile: Makefile
 	. venv-pixel/bin/activate; pip install "gftools @ git+https://github.com/googlefonts/gftools@$(GFTOOLS_PIXEL_REF)"
 	touch venv-pixel/touchfile
 
-test: fontspector check-language-shaping check-pixel-separators check-mono-hmetrics
+test: fontspector check-language-shaping check-pixel-separators \
+	check-pixel-ligature-carets check-mono-hmetrics
 
 test-scripts: venv
 	. venv/bin/activate; python3 -m unittest discover -s tests -p 'test_*.py'
@@ -170,6 +171,9 @@ check-language-shaping:
 
 check-pixel-separators: venv build.stamp
 	. venv/bin/activate; python3 scripts/check_pixel_separators.py
+
+check-pixel-ligature-carets: venv build.stamp
+	. venv/bin/activate; python3 scripts/check_pixel_ligature_carets.py
 
 check-mono-hmetrics: venv build.stamp
 	. venv/bin/activate; python3 scripts/check_mono_hmetrics.py

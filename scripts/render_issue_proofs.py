@@ -528,6 +528,51 @@ def render_issue_35() -> None:
     image.save(OUTPUT / "issue-35-wws-metadata.png", optimize=True)
 
 
+def render_issue_37() -> None:
+    image, draw = canvas(
+        37,
+        "PIXEL LIGATURE CARETS",
+        "The green insertion line follows the source caret_1 anchor inside both ligatures.",
+        1320,
+    )
+    label = font(MONO_DIR / "NamcheShadowMono-Regular.ttf", 21)
+    for row, style in enumerate(("Circle", "Grid", "Line", "Square", "Triangle")):
+        path = PIXEL_DIR / f"NamcheShadowPixel-{style}.ttf"
+        ttfont = TTFont(path, lazy=True)
+        caret_list = ttfont["GDEF"].table.LigCaretList
+        values = {}
+        for glyph_name in ("fi", "fl"):
+            index = caret_list.Coverage.glyphs.index(glyph_name)
+            values[glyph_name] = caret_list.LigGlyph[index].CaretValue[0].Coordinate
+        advance = ttfont["hmtx"].metrics["fi"][0]
+        units_per_em = ttfont["head"].unitsPerEm
+        ttfont.close()
+
+        y = 350 + row * 170
+        draw.text((72, y + 65), style.upper(), font=label, fill=MUTED)
+        specimen = font(path, 150)
+        scale = 150 / units_per_em
+        for column, (glyph, glyph_name) in enumerate((("ﬁ", "fi"), ("ﬂ", "fl"))):
+            x = 340 + column * 310
+            draw.text((x, y), glyph, font=specimen, fill=TEXT)
+            caret_x = round(x + values[glyph_name] * scale)
+            draw.line((caret_x, y + 10, caret_x, y + 145), fill=GREEN, width=4)
+            draw.text(
+                (x + 145, y + 66),
+                f"{glyph_name}  {values[glyph_name]} / {advance}",
+                font=label,
+                fill=GREEN,
+            )
+        draw.text((1240, y + 65), "GDEF", font=label, fill=GREEN)
+
+    footer(
+        draw,
+        image.height,
+        "All five Namche Shadow Pixel TTF statics · GDEF LigCaretList",
+    )
+    image.save(OUTPUT / "issue-37-pixel-ligature-carets.png", optimize=True)
+
+
 def main() -> None:
     if not features.check_feature("raqm"):
         raise SystemExit(
@@ -544,6 +589,7 @@ def main() -> None:
     render_issue_32()
     render_issue_33()
     render_issue_35()
+    render_issue_37()
     for path in sorted(OUTPUT.glob("issue-*.png")):
         print(f"Wrote {path.relative_to(ROOT)}")
 
