@@ -54,6 +54,11 @@ conventions.
   static.
 - Namche Shadow Mono and Namche Shadow Pixel remain outline-identical renamed
   Geist derivatives until a separately reviewed design change says otherwise.
+- `scripts/finalize_pixel_statics.py` restores the source's inkless U+2028 and
+  U+2029 glyphs and all source-defined `caret_*` positions (including `fi` and
+  `fl`) after native Pixel statics are restored. `make check-pixel-separators`
+  and `make check-pixel-ligature-carets` block regressions across release and
+  npm binaries.
 - Every release and npm binary uses OS/2 version 4 or later. Sans and Mono set
   `fsSelection` WWS bit 8 and omit name IDs 21/22. Pixel keeps bit 8 clear and
   mirrors its legacy family/subfamily names into WWS IDs 21/22 because the
