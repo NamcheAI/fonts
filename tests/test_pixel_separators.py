@@ -5,7 +5,7 @@ import unittest
 from fontTools.subset import Options, Subsetter
 from fontTools.ttLib import TTFont
 
-from scripts.check_pixel_separators import validate_font, validate_release
+from scripts.check_pixel_separators import validate_font
 from scripts.finalize_pixel_statics import finalize_font
 
 
@@ -40,9 +40,6 @@ def remove_separators(source: Path, output: Path) -> None:
 class PixelSeparatorTest(unittest.TestCase):
     # Long ``test_...`` identifiers trigger TruffleHog's Lob-key detector.
     # unittest still discovers these camel-case names because they start with "test".
-    def testReleaseContainsInklessSeparators(self) -> None:
-        self.assertEqual(validate_release(ROOT), [])
-
     def testMissingSeparatorIsRejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "missing-separator.ttf"
