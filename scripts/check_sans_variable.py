@@ -6,13 +6,23 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import numpy as np
+from fontPens.flattenPen import FlattenPen
 from fontTools.pens.areaPen import AreaPen
+from fontTools.pens.recordingPen import RecordingPen
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
 
 from build_sans_variable import FAMILY, PARKED_GLYPHS, WEIGHTS
 
 
+INTERPOLATION_REVIEW_GLYPHS = (
+    "uni0163",
+    "ordfeminine",
+    "uni0472",
+    "uni04E9",
+    "ampersand",
+)
 REPRESENTATIVE_GLYPHS = (
     "H",
     "E",
@@ -25,11 +35,12 @@ REPRESENTATIVE_GLYPHS = (
     "one",
     "two",
     "nine",
-    "ordfeminine",
     "Scedilla",
     "Uogonek",
-    "uni0163",
+    *INTERPOLATION_REVIEW_GLYPHS,
 )
+OUTLINE_SAMPLE_LENGTH = 4
+STATIC_OUTLINE_TOLERANCE = 7
 NPM_ENTRYPOINTS = ("font.js", "sans.js")
 NPM_UPRIGHT_STYLES = (
     "Thin",
@@ -49,6 +60,44 @@ def _glyph_area(font: TTFont, glyph_name: str) -> float:
     pen = AreaPen(glyph_set)
     glyph_set[glyph_name].draw(pen)
     return pen.value
+
+
+def _outline_points(font: TTFont, glyph_name: str) -> np.ndarray:
+    """Flatten an outline so visually equivalent, differently segmented curves compare."""
+
+    recording = RecordingPen()
+    flattening = FlattenPen(
+        recording,
+        approximateSegmentLength=OUTLINE_SAMPLE_LENGTH,
+        segmentLines=True,
+    )
+    font.getGlyphSet()[glyph_name].draw(flattening)
+    return np.asarray(
+        [
+            arguments[0]
+            for command, arguments in recording.value
+            if command in {"moveTo", "lineTo"}
+        ],
+        dtype=float,
+    )
+
+
+def _directed_outline_distance(source: np.ndarray, target: np.ndarray) -> float:
+    maximum = 0.0
+    for start in range(0, len(source), 1024):
+        batch = source[start : start + 1024]
+        distances = np.linalg.norm(batch[:, None, :] - target[None, :, :], axis=2)
+        maximum = max(maximum, float(distances.min(axis=1).max()))
+    return maximum
+
+
+def _outline_distance(first: np.ndarray, second: np.ndarray) -> float:
+    """Return the symmetric sampled-outline distance in font units."""
+
+    return max(
+        _directed_outline_distance(first, second),
+        _directed_outline_distance(second, first),
+    )
 
 
 def check(root: Path) -> None:
@@ -99,6 +148,16 @@ def check(root: Path) -> None:
         static_area = _glyph_area(static, "O")
         if not variable_area or not static_area or variable_area * static_area <= 0:
             raise ValueError(f"VF contour direction does not match the {style} static")
+        for glyph_name in INTERPOLATION_REVIEW_GLYPHS:
+            distance = _outline_distance(
+                _outline_points(instance, glyph_name),
+                _outline_points(static, glyph_name),
+            )
+            if distance > STATIC_OUTLINE_TOLERANCE:
+                raise ValueError(
+                    f"VF {glyph_name} at wght={weight} differs from the {style} static "
+                    f"by {distance:.2f} units (limit {STATIC_OUTLINE_TOLERANCE})"
+                )
 
     for weight in range(150, 900, 100):
         instance = instantiateVariableFont(variable, {"wght": weight}, inplace=False, optimize=False)
