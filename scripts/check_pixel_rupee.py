@@ -25,7 +25,7 @@ def validate_source(path: Path) -> list[str]:
     glyph = source.glyphs[GLYPH_NAME]
     if glyph is None:
         return [f"{path}: missing {GLYPH_NAME}"]
-    if glyph.unicode != f"{CODEPOINT:04x}":
+    if (glyph.unicode or "").upper() != f"{CODEPOINT:04X}":
         errors.append(f"{path}: {GLYPH_NAME} has Unicode {glyph.unicode!r}")
     if not glyph.export:
         errors.append(f"{path}: {GLYPH_NAME} must export")

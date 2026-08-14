@@ -191,6 +191,12 @@ def _restore_rupee(font: TTFont, compiled_font: TTFont) -> bool:
         # Append so no existing binary glyph ID moves. Inserting at the source
         # order position can invalidate lazily decoded TrueType components.
         order.append(glyph_name)
+        if "CFF " in font:
+            # FontTools normally aliases the CFF charset to glyph order, but
+            # preserve the invariant explicitly if that implementation changes.
+            charset = font["CFF "].cff.topDictIndex[0].charset
+            if glyph_name not in charset:
+                charset.append(glyph_name)
         font.setGlyphOrder(order)
         font["maxp"].numGlyphs = len(order)
     font["hmtx"].metrics[glyph_name] = metrics

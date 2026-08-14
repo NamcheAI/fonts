@@ -30,6 +30,45 @@ def remove_rupee_mapping(source: Path, output: Path) -> None:
     font.close()
 
 
+def remove_rupee_glyph(source: Path, output: Path) -> None:
+    font = TTFont(source, recalcTimestamp=False)
+    glyph_name = (font.getBestCmap() or {})[0x20B9]
+    for table in font["cmap"].tables:
+        if table.isUnicode():
+            table.cmap.pop(0x20B9, None)
+
+    glyf = font["glyf"] if "glyf" in font else None
+    top_dict = font["CFF "].cff.topDictIndex[0] if "CFF " in font else None
+    charstrings = top_dict.CharStrings if top_dict is not None else None
+    if charstrings is not None:
+        _ = charstrings.charStrings[glyph_name]
+    hmtx = font["hmtx"]
+    post = font["post"]
+    order = font.getGlyphOrder()
+    if order[-1] != glyph_name:
+        raise AssertionError("rupee fixture must be the final glyph")
+    order.pop()
+    if glyf is not None:
+        glyf.glyphs.pop(glyph_name)
+    else:
+        assert top_dict is not None
+        assert charstrings is not None
+        index = charstrings.charStrings.pop(glyph_name)
+        if index != len(charstrings.charStringsIndex) - 1:
+            raise AssertionError("rupee CFF fixture must use the final charstring")
+        charstrings.charStringsIndex.items.pop()
+        if glyph_name in top_dict.charset:
+            top_dict.charset.remove(glyph_name)
+    hmtx.metrics.pop(glyph_name)
+    if post.formatType == 2.0 and glyph_name in post.extraNames:
+        post.extraNames.remove(glyph_name)
+        post.mapping.pop(glyph_name, None)
+    font.setGlyphOrder(order)
+    font["maxp"].numGlyphs = len(order)
+    font.save(output, reorderTables=False)
+    font.close()
+
+
 class PixelRupeeTest(unittest.TestCase):
     def testSourceUsesReviewedPixelRecipe(self) -> None:
         self.assertEqual(validate_source(PIXEL_SOURCE), [])
@@ -48,11 +87,16 @@ class PixelRupeeTest(unittest.TestCase):
             for source in PIXEL_FIXTURES:
                 with self.subTest(suffix=source.suffix):
                     path = Path(directory) / source.name
-                    remove_rupee_mapping(source, path)
+                    remove_rupee_glyph(source, path)
                     self.assertEqual(len(validate_font(path)), 1)
 
                     self.assertTrue(finalize_font(path, source))
                     self.assertEqual(validate_font(path), [])
+                    restored = TTFont(path, recalcTimestamp=False)
+                    if "CFF " in restored:
+                        top_dict = restored["CFF "].cff.topDictIndex[0]
+                        self.assertEqual(restored.getGlyphOrder(), top_dict.charset)
+                    restored.close()
                     first_result = path.read_bytes()
 
                     self.assertFalse(finalize_font(path, source))
