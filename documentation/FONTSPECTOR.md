@@ -69,6 +69,29 @@ guarded distance changes.
 - Design-consistency warnings such as math-sign widths and ligature carets need
   a designer/type-engineer decision before changing outlines or metrics.
 
+## Reviewed maintenance triage
+
+Issue #23 reviewed the remaining outline, metric, reachability, and Pixel
+feature warnings against the rendered release fonts. The corresponding
+characters are maintained in `documentation/issues/issue-23-outline-metrics.png`
+and `documentation/issues/issue-23-outline-heuristics.png`.
+
+| Warning group | Classification | Decision |
+| --- | --- | --- |
+| `alignment_miss`, `colinear_vectors`, `jaggy_segments`, `short_segments`, `contour_count` | Intentional design/source heuristics | The rendered Sans, Mono, and Pixel examples show the expected rounded overshoots, interpolation/source points, and Pixel grid geometry. Do not bulk-edit these coordinates. A newly reported or visibly wrong glyph still requires an issue and Michael's review. |
+| `overlapping_path_segments` | Intentional implementation artifact | Current findings are coincident component edges or zero-length segments produced by source composition and VF compatibility. They have no demonstrated rendering defect; retain them unless a focused source review proves otherwise. |
+| `math_signs_width` | Intentional design choice | Sans is proportional, Mono already uses its monospaced advance, and Pixel keeps the inherited shape-specific widths. Do not normalize spacing merely to match the most common glyph width. |
+| Mono `opentype/monospace` | Binary optimization | Compact the redundant `hhea.numberOfHMetrics` representation without changing advances or sidebearings in [#33](https://github.com/NamcheAI/namche-shadow-font/issues/33). |
+| `opentype/fsselection_wws` | Metadata defect | Make the maintained WWS metadata spec-correct across all three families in [#35](https://github.com/NamcheAI/namche-shadow-font/issues/35). |
+| Pixel `separator_glyphs` | Export feature defect | The source already has inkless U+2028/U+2029 glyphs; preserve them in release exports in [#32](https://github.com/NamcheAI/namche-shadow-font/issues/32). |
+| Pixel `rupee` | Missing glyph feature | Design and ship **₹** for all five Pixel styles in [#34](https://github.com/NamcheAI/namche-shadow-font/issues/34). |
+| Pixel `dotted_circle`, required `soft_dotted` | Shaping/design feature | Add **◌** and correct **į́ į̌ į̀ į̃ į̄ į̂** behavior in [#36](https://github.com/NamcheAI/namche-shadow-font/issues/36). |
+| Pixel `ligature_carets` | Export feature defect | Preserve the existing source caret anchors for **ﬁ ﬂ** in GDEF in [#37](https://github.com/NamcheAI/namche-shadow-font/issues/37). |
+| `valid_glyphnames` | Intentional compatibility choice | The long names belong to inherited internal ligature/alternate glyphs. Renaming them would churn GSUB/source references for a legacy recommendation, with no public API benefit. |
+| `unreachable_glyphs`, `unreachable_subsetting` | Source/distributor profile choice | Unencoded working/component glyphs remain available to the source, while this npm/direct-download project has no Google Fonts `METADATA.pb` subset-serving contract. Treat count increases as regressions, but do not remove the baseline solely for this profile. |
+| Pixel `soft_hyphen` | Intentional compatibility choice | Retain encoded U+00AD; its presence conflicts with current Google Fonts policy but is valid for the direct font distribution. |
+| Sans VF `suspicious_sidebearings` | Mark-metric heuristic | The reported glyph is the combining mark `uni03020301`; its right-sidebearing variation is not user-facing spacing. Reopen only if shaping proof exposes a mark-positioning defect. |
+
 For Sans, the release-specific acceptance checks are stronger than the generic
 profile: every static weight must contain the complete seven-tier RoundCorner
 result, `H` must retain the expected four rounded inner segments, the five
