@@ -262,8 +262,8 @@ def render_issue_23() -> None:
     image, draw = canvas(
         23,
         "OUTLINE & METRICS TRIAGE",
-        "Representative warning groups; this panel is for visual classification, not an automatic fix.",
-        1280,
+        "Math widths stay intentional; missing Pixel features have focused follow-ups.",
+        1360,
     )
     label = font(MONO_DIR / "NamcheShadowMono-Regular.ttf", 22)
     section(draw, 340, "Math-sign widths")
@@ -281,9 +281,62 @@ def render_issue_23() -> None:
         y = 720 + index * 120
         draw.text((72, y + 22), style, font=label, fill=MUTED)
         draw.text((300, y), "◌ · ₹ ﬁ ﬂ ‐", font=font(path, 72), fill=TEXT)
-    draw.text((72, 1110), "A box or fallback shape makes a missing glyph immediately visible.", font=label, fill=MUTED)
+    draw.text(
+        (72, 1110),
+        "A box or fallback shape makes a missing glyph immediately visible.",
+        font=label,
+        fill=MUTED,
+    )
+    followups = (
+        "#32 separators · #33 Mono hhea · #34 ₹ · #35 WWS · "
+        "#36 dotted circle / į́ · #37 fi/fl carets"
+    )
+    draw.text(
+        (72, 1160),
+        followups,
+        font=fit(MONO_DIR / "NamcheShadowMono-Regular.ttf", followups, 1456, 22),
+        fill=MUTED,
+    )
     footer(draw, image.height, "Sans/Mono Regular and Pixel Circle/Grid/Line statics")
     image.save(OUTPUT / "issue-23-outline-metrics.png", optimize=True)
+
+
+def render_issue_23_outlines() -> None:
+    image, draw = canvas(
+        23,
+        "OUTLINE HEURISTICS",
+        "Characters flagged by alignment, jaggy, short-segment, contour, or overlap checks.",
+        1900,
+    )
+    label = font(MONO_DIR / "NamcheShadowMono-Regular.ttf", 21)
+
+    def specimen_row(
+        y: int, style: str, sample: str, path: Path, size: int = 78
+    ) -> None:
+        draw.text((72, y + 30), style, font=label, fill=MUTED)
+        draw.text((280, y), sample, font=fit(path, sample, 1240, size), fill=TEXT)
+
+    section(draw, 340, "Sans · rounded/source heuristics")
+    specimen_row(405, "THIN", "M a Ư Ẫ ฿ в Ç", SANS_DIR / "NamcheShadowSans-Thin.ttf")
+    specimen_row(535, "REGULAR", "M a Ư Ẫ ฿ в Ç", SANS_DIR / "NamcheShadowSans-Regular.ttf")
+    specimen_row(665, "BLACK", "M a Ư Ẫ ฿ в Ç", SANS_DIR / "NamcheShadowSans-Black.ttf")
+
+    section(draw, 820, "Mono · inherited outline heuristics")
+    specimen_row(885, "THIN", "M W G Ư Ŋ f m", MONO_DIR / "NamcheShadowMono-Thin.ttf")
+    specimen_row(1015, "REGULAR", "M W G Ư Ŋ f m", MONO_DIR / "NamcheShadowMono-Regular.ttf")
+    specimen_row(1145, "BLACK", "M W G Ư Ŋ f m", MONO_DIR / "NamcheShadowMono-Black.ttf")
+
+    section(draw, 1300, "Pixel · grid and component heuristics")
+    specimen_row(1365, "CIRCLE", "ą ő ű æ ﬁ ﬂ", PIXEL_DIR / "NamcheShadowPixel-Circle.ttf", 70)
+    specimen_row(1495, "GRID", "ą ő ű æ ﬁ ﬂ", PIXEL_DIR / "NamcheShadowPixel-Grid.ttf", 70)
+    specimen_row(1625, "LINE", "ą ő ű æ ﬁ ﬂ", PIXEL_DIR / "NamcheShadowPixel-Line.ttf", 70)
+
+    footer(
+        draw,
+        image.height,
+        "Representative flagged glyphs · visual baseline only; no bulk outline changes",
+    )
+    image.save(OUTPUT / "issue-23-outline-heuristics.png", optimize=True)
 
 
 def render_issue_24() -> None:
@@ -349,6 +402,7 @@ def main() -> None:
     render_issue_21()
     render_issue_22()
     render_issue_23()
+    render_issue_23_outlines()
     render_issue_24()
     render_issue_25()
     for path in sorted(OUTPUT.glob("issue-*.png")):
