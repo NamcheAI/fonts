@@ -9,64 +9,316 @@ on:
     tags:
       - '*'
 
-permissions: write-all
+permissions:
+  contents: read
+  pull-requests: read
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  build:
-    name: Build and test
+  changes:
+    name: Detect affected families
     runs-on: ubuntu-latest
+    outputs:
+      sans_qa: ${{ steps.changes.outputs.sans_qa }}
+      mono_qa: ${{ steps.changes.outputs.mono_qa }}
+      pixel_qa: ${{ steps.changes.outputs.pixel_qa }}
+      mono_build: ${{ steps.changes.outputs.mono_build }}
+      pixel_build: ${{ steps.changes.outputs.pixel_build }}
+    steps:
+      - name: Classify changed files
+        id: changes
+        uses: actions/github-script@v8
+        with:
+          script: |
+            let names = [];
+            if (context.eventName === 'pull_request') {
+              const files = await github.paginate(github.rest.pulls.listFiles, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                per_page: 100,
+              });
+              names = files.map((file) => file.filename);
+            }
+
+            const full = context.eventName !== 'pull_request';
+            const changed = (...patterns) => names.some((name) =>
+              patterns.some((pattern) =>
+                pattern.endsWith('/') ? name.startsWith(pattern) : name === pattern
+              )
+            );
+
+            const sharedQa = changed(
+              '.github/workflows/ci.yaml',
+              'Makefile',
+              'requirements-checks.txt',
+              'scripts/check_language_shaping.py',
+              'scripts/rename_font_metadata.py'
+            );
+            const sharedBuild = changed(
+              '.github/workflows/ci.yaml',
+              'Makefile',
+              'requirements.in',
+              'requirements.txt',
+              'scripts/customize.py',
+              'scripts/read-config.py',
+              'scripts/rename_font_metadata.py'
+            );
+
+            const sansQa = full || sharedQa || changed(
+              'fonts/NamcheShadowSans/',
+              'packages/next/dist/fonts/namche-shadow-sans/',
+              'sources/NamcheShadowSans.glyphspackage/',
+              'sources/NamcheShadowSans-Italic.glyphspackage/',
+              'sources/config-NamcheShadowSans.yaml',
+              'scripts/build_sans_variable.py',
+              'scripts/check_sans_variable.py',
+              'scripts/finalize_glyphs_statics.py',
+              'scripts/refresh_shaping_tables.py'
+            );
+            const monoQa = full || sharedQa || changed(
+              'fonts/NamcheShadowMono/',
+              'packages/next/dist/fonts/namche-shadow-mono/',
+              'sources/NamcheShadowMono.glyphspackage/',
+              'sources/NamcheShadowMono-Italic.glyphspackage/',
+              'sources/config-NamcheShadowMono.yaml',
+              'scripts/check_mono_hmetrics.py'
+            );
+            const pixelQa = full || sharedQa || changed(
+              'fonts/NamcheShadowPixel/',
+              'packages/next/dist/fonts/namche-shadow-pixel/',
+              'sources/NamcheShadowPixel.glyphspackage/',
+              'sources/config-NamcheShadowPixel.yaml',
+              'sources/compile-NamcheShadowPixelStatics.yaml',
+              'scripts/check_pixel_ligature_carets.py',
+              'scripts/check_pixel_rupee.py',
+              'scripts/check_pixel_separators.py',
+              'scripts/finalize_pixel_statics.py'
+            );
+            const monoBuild = full || sharedBuild || changed(
+              'sources/NamcheShadowMono.glyphspackage/',
+              'sources/NamcheShadowMono-Italic.glyphspackage/',
+              'sources/config-NamcheShadowMono.yaml'
+            );
+            const pixelBuild = full || sharedBuild || changed(
+              'sources/NamcheShadowPixel.glyphspackage/',
+              'sources/config-NamcheShadowPixel.yaml',
+              'sources/compile-NamcheShadowPixelStatics.yaml',
+              'scripts/finalize_pixel_statics.py'
+            );
+
+            for (const [key, value] of Object.entries({
+              sans_qa: sansQa,
+              mono_qa: monoQa,
+              pixel_qa: pixelQa,
+              mono_build: monoBuild,
+              pixel_build: pixelBuild,
+            })) {
+              core.setOutput(key, value ? 'true' : 'false');
+            }
+
+  validate:
+    name: Build and test
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
       - name: Set up Python 3.11
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
-      - name: Setup fontspector
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-checks.txt
+
+      - name: Install check dependencies
+        run: python -m pip install --disable-pip-version-check -r requirements-checks.txt
+
+      - name: Test validation scripts
+        run: python -m unittest discover -s tests -p 'test_*.py'
+
+      - name: Check source copies
+        run: python scripts/check_source_copies.py
+
+      - name: Assemble npm font fixtures
+        run: make copy-npm-fonts PYTHON=python
+
+      - name: Check release metadata
+        run: |
+          python scripts/rename_font_metadata.py --check fonts
+          python scripts/rename_font_metadata.py --check packages/next/dist/fonts
+
+      - name: Check Sans variable release
+        run: python scripts/check_sans_variable.py
+
+      - name: Check Mono horizontal metrics
+        run: python scripts/check_mono_hmetrics.py
+
+      - name: Check Pixel release invariants
+        run: |
+          python scripts/check_pixel_separators.py
+          python scripts/check_pixel_ligature_carets.py
+          python scripts/check_pixel_rupee.py
+
+      - name: Set up Fontspector
+        if: >-
+          github.event_name == 'pull_request' &&
+          (needs.changes.outputs.sans_qa == 'true' ||
+          needs.changes.outputs.mono_qa == 'true' ||
+          needs.changes.outputs.pixel_qa == 'true')
         uses: fonttools/setup-fontspector@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install toolset
+
+      - name: Run Sans Fontspector baseline
+        if: >-
+          github.event_name == 'pull_request' &&
+          needs.changes.outputs.sans_qa == 'true'
+        run: make fontspector-sans
+
+      - name: Check Sans language shaping
+        if: >-
+          github.event_name == 'pull_request' &&
+          needs.changes.outputs.sans_qa == 'true'
+        run: make check-language-shaping-sans
+
+      - name: Run Mono Fontspector baseline
+        if: >-
+          github.event_name == 'pull_request' &&
+          needs.changes.outputs.mono_qa == 'true'
+        run: make fontspector-mono
+
+      - name: Check Mono language shaping
+        if: >-
+          github.event_name == 'pull_request' &&
+          needs.changes.outputs.mono_qa == 'true'
+        run: make check-language-shaping-mono
+
+      - name: Run Pixel Fontspector baseline
+        if: >-
+          github.event_name == 'pull_request' &&
+          needs.changes.outputs.pixel_qa == 'true'
+        run: make fontspector-pixel
+
+  rebuild-mono:
+    name: Rebuild changed Mono source
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.changes.outputs.mono_build == 'true'
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - uses: fonttools/setup-fontspector@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install build toolset
+        run: |
+          sudo apt-get update
+          sudo apt-get install ttfautohint libcairo2-dev python3-cairo-dev pkg-config python3-dev
+      - name: Build Mono
+        run: make build-mono
+      - name: Validate rebuilt Mono
+        run: |
+          make copy-npm-fonts
+          venv/bin/python scripts/rename_font_metadata.py --check fonts/NamcheShadowMono
+          venv/bin/python scripts/check_mono_hmetrics.py
+          make fontspector-mono
+          make check-language-shaping-mono
+
+  rebuild-pixel:
+    name: Rebuild changed Pixel source
+    if: >-
+      github.event_name == 'pull_request' &&
+      needs.changes.outputs.pixel_build == 'true'
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            Makefile
+      - uses: fonttools/setup-fontspector@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install build toolset
+        run: |
+          sudo apt-get update
+          sudo apt-get install ttfautohint libcairo2-dev python3-cairo-dev pkg-config python3-dev
+      - name: Build Pixel
+        run: make build-pixel
+      - name: Validate rebuilt Pixel
+        run: |
+          make copy-npm-fonts
+          venv/bin/python scripts/rename_font_metadata.py --check fonts/NamcheShadowPixel
+          venv/bin/python scripts/check_pixel_separators.py
+          venv/bin/python scripts/check_pixel_ligature_carets.py
+          venv/bin/python scripts/check_pixel_rupee.py
+          make fontspector-pixel
+
+  build:
+    name: Build release artifacts
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            Makefile
+      - name: Set up Fontspector
+        uses: fonttools/setup-fontspector@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install build toolset
         run: |
           sudo apt-get update
           sudo apt-get install ttfautohint libcairo2-dev python3-cairo-dev pkg-config python3-dev
       - name: Set artifact file name
-        id: zip-name
-        shell: bash
-        # Set the archive name to repo name + "-fonts" e.g "radiocanadafonts-fonts.zip"
         run: echo "ZIP_NAME=${GITHUB_REPOSITORY#*/}-fonts" >> "$GITHUB_ENV"
-
-      # If a new release is cut, use the release tag to auto-bump the source files
-      # - name: Bump release
-      #   if: github.event_name == 'release'
-      #   run: |
-      #     . venv/bin/activate
-      #     SRCS=$(yq e ".sources[]" sources/config.yaml)
-      #     TAG_NAME=${GITHUB_REF/refs\/tags\//}
-      #     echo "Bumping $SRCS to $TAG_NAME"
-      #     for src in $SRCS
-      #     do
-      #       bumpfontversion sources/$src --new-version $TAG_NAME;
-      #     done
-
-      - name: Build font
+      - name: Build fonts
         run: make build
-      - name: Test validation scripts
-        run: make test-scripts
-      - name: Check Mono horizontal metrics
-        run: make check-mono-hmetrics
-      - name: Run fontspector baseline
-        run: make fontspector
-        continue-on-error: true
-      - name: Check language shaping
-        run: make check-language-shaping
+      - name: Test built fonts
+        run: |
+          make test-scripts
+          make check-mono-hmetrics
+          make fontspector-release
+          make check-language-shaping
       - name: Generate proofs
         run: make proof
       - name: Set up test result site
         run: cp scripts/index.html out/index.html
       - name: Collect deployment assets
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v4
         with:
           path: ./out
@@ -89,7 +341,7 @@ jobs:
 
   deploy:
     name: Deploy results to GitHub Pages
-    if: ${{ github.ref == 'refs/heads/main' }}
+    if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -103,22 +355,20 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-  # There are two ways a release can be created: either by pushing a tag, or by
-  # creating a release from the GitHub UI. Pushing a tag does not automatically
-  # create a release, so we have to do that ourselves. However, creating a
-  # release from the GitHub UI *does* push a tag, and we don't want to create
-  # a new release in that case because one already exists!
-
   release:
     name: Release bundle
     if: contains(github.ref, 'refs/tags/')
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       ZIP_NAME: ${{ needs.build.outputs.zip_name }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Use font artifacts from CI
         uses: actions/download-artifact@v5
         with:
@@ -132,31 +382,24 @@ jobs:
       - name: Remove proof/test outputs from release
         run: rm -rf ${{ env.ZIP_NAME }}/out
       - name: Set release file name
-        shell: bash
         run: echo "RELEASE_ZIP_NAME=${GITHUB_REPOSITORY#*/}-${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
       - name: Create release bundle
         run: mv ${{ env.ZIP_NAME }} ${{ env.RELEASE_ZIP_NAME }}; zip -r ${{ env.RELEASE_ZIP_NAME }}.zip ${{ env.RELEASE_ZIP_NAME }}
       - name: Check for release
-        id: create_release
         run: |
           if ! gh release view ${{ github.ref_name }}; then
-          git show -s --format=%B ${{ github.ref_name }} | tail -n +4 | gh release create ${{ github.ref_name }} -t ${{ github.ref_name }} -F -
+            git show -s --format=%B ${{ github.ref_name }} | tail -n +4 | gh release create ${{ github.ref_name }} -t ${{ github.ref_name }} -F -
           fi
       - name: Populate release
-        run: |
-          gh release upload ${{ github.ref_name }} ${{ env.RELEASE_ZIP_NAME }}.zip --clobber
+        run: gh release upload ${{ github.ref_name }} ${{ env.RELEASE_ZIP_NAME }}.zip --clobber
       - name: Set release live
-        run: |
-          gh release edit ${{ github.ref_name }} --draft=false
+        run: gh release edit ${{ github.ref_name }} --draft=false
 
   release-npm:
     name: Release packages
     needs: build
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    # contents: write    -> let changesets/action push tags via the GitHub API
-    # pull-requests: write -> let changesets/action open the "Version Packages" PR
-    # id-token: write    -> required for npm Trusted Publishing (OIDC)
     permissions:
       contents: write
       pull-requests: write
@@ -166,42 +409,30 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
+          persist-credentials: false
       - name: Download npm artifacts
         uses: actions/download-artifact@v5
         with:
           name: namche-shadow-font-fonts-npm
           path: ./artifacts
-
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
-
-      # npm Trusted Publishing requires npm CLI >= 11.5.1; Node 22.x ships with npm 10.x
       - name: Install npm 11
         run: npm install -g npm@11.19.0
-
-      # Pin the Corepack release used to activate the packageManager field.
-      - name: 'Install corepack@0.35.0'
-        shell: bash
-        run: |
-          npm install -g corepack@0.35.0
-          echo "corepack version after: $(corepack --version)"
-
+      - name: Install Corepack
+        run: npm install -g corepack@0.35.0
       - name: Enable Corepack
         run: corepack enable
-
       - name: Install dependencies
         working-directory: packages/next
         run: pnpm install --frozen-lockfile
-
-      - name: Move the font files for npm from build artifacts to the npm package
+      - name: Move font files into the npm package
         run: |
           rm -rf packages/next/dist/fonts
           mv artifacts/packages/next/dist/fonts packages/next/dist/fonts
-
       - name: Create Release Pull Request or Publish
         id: changesets
         uses: changesets/action@v1.8.0
@@ -209,14 +440,10 @@ jobs:
           publish: pnpm run release
           version: pnpm run version
           cwd: packages/next
-          title: "changesets: update versions of packages for release"
-          # Sign the "Version Packages" PR commit with GitHub's GPG key
+          title: 'changesets: update versions of packages for release'
           commitMode: github-api
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # This will upload the font zip and attach it to the existing github release for the npm package,
-      # allowing users to download just the font zip files without the source code of the npm package.
       - name: Upload font zip to GitHub Release
         if: steps.changesets.outputs.published == 'true'
         env:

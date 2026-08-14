@@ -1,6 +1,7 @@
 SOURCES=$(shell python3 scripts/read-config.py --sources )
 PIXEL_SOURCES=$(shell find sources/NamcheShadowPixel.glyphspackage -type f)
 FAMILY=$(shell python3 scripts/read-config.py --family )
+PYTHON?=venv/bin/python
 SHAPING_REPORTS=out/fontspector/NamcheShadowSansVF-fontspector-report.json out/fontspector/NamcheShadowSans-fontspector-report.json out/fontspector/NamcheShadowMonoVF-fontspector-report.json out/fontspector/NamcheShadowMono-fontspector-report.json
 SHAPING_FONT_DIRS=fonts/NamcheShadowSans/variable fonts/NamcheShadowSans/ttf fonts/NamcheShadowMono/variable fonts/NamcheShadowMono/ttf
 
@@ -32,42 +33,42 @@ build.stamp: venv venv-pixel sources/config-NamcheShadowSans.yaml \
 	$(PIXEL_SOURCES) $(SOURCES)
 	$(MAKE) check-source-copies
 	rm -rf fonts namche-shadow-font namche-shadow-font.zip
+	$(MAKE) build-mono
+	$(MAKE) build-pixel
 	# Namche Shadow Sans statics are native Glyphs exports: gftools does not run
-	# the seven RoundCorner instance filters. Skip that config so a Linux build
-	# cannot silently replace the approved outlines. Namche Shadow Pixel uses a
-	# virtual master, which the released gftools in
-	# requirements.txt can't build (it fails with "No final targets"). Build it
-	# with the dev gftools in venv-pixel that has the virtual-master fix;
-	# Mono uses venv.
-	@for config in sources/config*.yaml; do \
-		if [ "$$config" = "sources/config-NamcheShadowSans.yaml" ]; then \
-			echo "Using committed native Glyphs exports for Namche Shadow Sans"; \
-		elif [ "$$config" = "sources/config-NamcheShadowPixel.yaml" ]; then \
-			( . venv-pixel/bin/activate && gftools builder "$$config" ); \
-		else \
-			( . venv/bin/activate && gftools builder "$$config" ); \
-		fi; \
-		done
-	# Compile reviewed Pixel source additions separately. The finalizer merges only
-	# those additions into the approved native statics, preserving every existing
-	# release outline and table.
-	rm -rf out/pixel-compiled
-	( . venv-pixel/bin/activate && gftools builder sources/compile-NamcheShadowPixelStatics.yaml )
+	# the seven RoundCorner instance filters. A Linux build restores and validates
+	# the committed approved release instead of replacing its outlines.
+	@echo "Using committed native Glyphs exports for Namche Shadow Sans"
 	# Sans statics and Pixel statics/webfonts are native Glyphs exports committed
 	# to the repository. Restore them after the clean build so release and npm
 	# artifacts use the approved outlines.
 	git checkout -- fonts/NamcheShadowSans/otf fonts/NamcheShadowSans/ttf fonts/NamcheShadowSans/webfonts fonts/NamcheShadowSans/variable
-	git checkout -- fonts/NamcheShadowPixel/otf fonts/NamcheShadowPixel/ttf fonts/NamcheShadowPixel/webfonts
-	. venv/bin/activate; python3 scripts/finalize_pixel_statics.py fonts/NamcheShadowPixel --compiled out/pixel-compiled
-	# Sans metadata was finalized with the native exports; leave those committed
-	# files byte-for-byte intact. Normalize only families generated in this run.
-	. venv/bin/activate; python3 scripts/rename_font_metadata.py fonts/NamcheShadowMono
-	. venv/bin/activate; python3 scripts/rename_font_metadata.py fonts/NamcheShadowPixel
 	. venv/bin/activate; python3 scripts/rename_font_metadata.py --check fonts
 	. venv/bin/activate; python3 scripts/check_sans_variable.py
 	$(MAKE) copy-npm-fonts
 	$(MAKE) create-release-zip
 	touch build.stamp
+
+# Family-scoped targets let pull-request CI compile only the source that changed.
+# They intentionally stop before assembling cross-family npm/release artifacts.
+build-mono: venv sources/config-NamcheShadowMono.yaml \
+	sources/NamcheShadowMono.glyphspackage \
+	sources/NamcheShadowMono-Italic.glyphspackage
+	rm -rf fonts/NamcheShadowMono
+	. venv/bin/activate; gftools builder sources/config-NamcheShadowMono.yaml
+	. venv/bin/activate; python3 scripts/rename_font_metadata.py fonts/NamcheShadowMono
+
+build-pixel: venv venv-pixel sources/config-NamcheShadowPixel.yaml \
+	sources/compile-NamcheShadowPixelStatics.yaml $(PIXEL_SOURCES)
+	# Pixel's virtual-master support needs the pinned dev gftools build.
+	rm -rf fonts/NamcheShadowPixel out/pixel-compiled
+	. venv-pixel/bin/activate; gftools builder sources/config-NamcheShadowPixel.yaml
+	# Compile reviewed source additions separately. The finalizer merges only
+	# those additions into the approved native statics.
+	. venv-pixel/bin/activate; gftools builder sources/compile-NamcheShadowPixelStatics.yaml
+	git checkout -- fonts/NamcheShadowPixel/otf fonts/NamcheShadowPixel/ttf fonts/NamcheShadowPixel/webfonts
+	. venv/bin/activate; python3 scripts/finalize_pixel_statics.py fonts/NamcheShadowPixel --compiled out/pixel-compiled
+	. venv/bin/activate; python3 scripts/rename_font_metadata.py fonts/NamcheShadowPixel
 
 check-source-copies:
 	# Mono remains outline-identical; Pixel permits the separately reviewed rupee.
@@ -96,7 +97,7 @@ refresh-sans-shaping: venv
 	. venv/bin/activate; python3 scripts/rename_font_metadata.py --check fonts/NamcheShadowSans
 	$(MAKE) copy-npm-fonts
 
-copy-npm-fonts: venv
+copy-npm-fonts:
 	# Clear any pre-existing build artifacts
 	rm -rf packages/next/dist/fonts
 	# Copy over the relevant font files
@@ -132,7 +133,7 @@ copy-npm-fonts: venv
 		mv NamcheShadowMono-ExtraBold.woff2 NamcheShadowMono-UltraBlack.woff2 && \
 		mv 'NamcheShadowMono[wght].ttf' NamcheShadowMono-Variable.ttf && \
 		mv 'NamcheShadowMono[wght].woff2' NamcheShadowMono-Variable.woff2
-	. venv/bin/activate; python3 scripts/rename_font_metadata.py --check packages/next/dist/fonts
+	$(PYTHON) scripts/rename_font_metadata.py --check packages/next/dist/fonts
 
 create-release-zip:
 	mkdir -p namche-shadow-font
@@ -158,35 +159,60 @@ venv-pixel/touchfile: Makefile
 	. venv-pixel/bin/activate; pip install "gftools @ git+https://github.com/googlefonts/gftools@$(GFTOOLS_PIXEL_REF)"
 	touch venv-pixel/touchfile
 
-test: fontspector check-language-shaping check-pixel-separators \
+test: build.stamp fontspector-release check-language-shaping check-pixel-separators \
 	check-pixel-ligature-carets check-pixel-rupee check-mono-hmetrics
 
 test-scripts: venv
 	. venv/bin/activate; python3 -m unittest discover -s tests -p 'test_*.py'
 
-fontspector: build.stamp
-	which fontspector || (echo "fontspector not found. Please install it with 'cargo install fontspector'." && exit 1)
+fontspector: build.stamp fontspector-release
+
+fontspector-release:
 	rm -rf out/fontspector out/badges
+	$(MAKE) fontspector-sans fontspector-mono fontspector-pixel
+
+fontspector-prepare:
+	which fontspector || (echo "fontspector not found. Please install it with 'cargo install fontspector'." && exit 1)
 	mkdir -p out/fontspector out/badges
+
+fontspector-sans: fontspector-prepare
 	TOCHECK=$$(find fonts/NamcheShadowSans/variable -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowSansVF-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowSans.yaml,title=fontspector failures::The Sans variable-font QA check reported errors. Please check the generated report.'
 	TOCHECK=$$(find fonts/NamcheShadowSans/ttf -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowSans-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowSans.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
+
+fontspector-mono: fontspector-prepare
 	TOCHECK=$$(find fonts/NamcheShadowMono/variable -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowMonoVF-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowMono.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
 	TOCHECK=$$(find fonts/NamcheShadowMono/ttf -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowMono-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowMono.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
+
+fontspector-pixel: fontspector-prepare
 	TOCHECK=$$(find fonts/NamcheShadowPixel/ttf -type f 2>/dev/null); mkdir -p out/ out/fontspector; fontspector --profile googlefonts -l warn --full-lists --succinct --json out/fontspector/NamcheShadowPixel-fontspector-report.json --badges out/badges $$TOCHECK  || echo '::warning file=sources/config-NamcheShadowPixel.yaml,title=fontspector failures::The fontspector QA check reported errors in your font. Please check the generated report.'
 
 check-language-shaping:
 	python3 scripts/check_language_shaping.py $(foreach dir,$(SHAPING_FONT_DIRS),--font-dir $(dir)) $(SHAPING_REPORTS)
 
-check-pixel-separators: venv build.stamp
+check-language-shaping-sans:
+	python3 scripts/check_language_shaping.py \
+		--font-dir fonts/NamcheShadowSans/variable \
+		--font-dir fonts/NamcheShadowSans/ttf \
+		out/fontspector/NamcheShadowSansVF-fontspector-report.json \
+		out/fontspector/NamcheShadowSans-fontspector-report.json
+
+check-language-shaping-mono:
+	python3 scripts/check_language_shaping.py \
+		--font-dir fonts/NamcheShadowMono/variable \
+		--font-dir fonts/NamcheShadowMono/ttf \
+		out/fontspector/NamcheShadowMonoVF-fontspector-report.json \
+		out/fontspector/NamcheShadowMono-fontspector-report.json
+
+check-pixel-separators: venv
 	. venv/bin/activate; python3 scripts/check_pixel_separators.py
 
-check-pixel-ligature-carets: venv build.stamp
+check-pixel-ligature-carets: venv
 	. venv/bin/activate; python3 scripts/check_pixel_ligature_carets.py
 
-check-pixel-rupee: venv build.stamp
+check-pixel-rupee: venv
 	. venv/bin/activate; python3 scripts/check_pixel_rupee.py
 
-check-mono-hmetrics: venv build.stamp
+check-mono-hmetrics: venv
 	. venv/bin/activate; python3 scripts/check_mono_hmetrics.py
 
 proof: venv build.stamp

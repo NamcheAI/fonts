@@ -103,6 +103,25 @@ conventions.
    PR and published through npm Trusted Publishing; do not publish manually
    with a local npm token.
 
+### CI execution
+
+- The required `Build and test` PR check validates the committed release fonts
+  directly with `requirements-checks.txt`; generated npm font fixtures are
+  assembled from those committed binaries before the release checks run.
+- Pull requests rebuild Mono or Pixel only when that family's source or a
+  shared build input changes. A Pixel-only change must not pay for a Mono
+  rebuild, and vice versa. Sans remains based on reviewed native Glyphs
+  exports and is validated rather than rebuilt on Linux.
+- Fontspector runs only for families affected by the PR. Full proofs, release
+  ZIPs, npm artifacts, Pages assets, and the complete cross-family build run on
+  `main`, tags, or manual dispatches.
+- This repository is public and uses GitHub-hosted runners only. Namche
+  self-hosted runners are reserved for private repositories.
+- Keep the required workflow itself unconditional. Use job/step conditions for
+  expensive work so path filtering cannot leave the required check pending.
+- PR concurrency must cancel superseded runs; a new push should not wait behind
+  obsolete font builds from the same pull request.
+
 ## Validation before a PR
 
 Run the checks relevant to the change, preferably all of these for a font
