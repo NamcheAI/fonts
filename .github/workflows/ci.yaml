@@ -121,7 +121,7 @@ jobs:
             }
 
   validate:
-    name: Build and test
+    name: Validate committed release fonts
     needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -276,6 +276,26 @@ jobs:
           venv/bin/python scripts/check_pixel_ligature_carets.py
           venv/bin/python scripts/check_pixel_rupee.py
           make fontspector-pixel
+
+  required:
+    name: Build and test
+    if: always()
+    needs:
+      - validate
+      - rebuild-mono
+      - rebuild-pixel
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verify required CI results
+        env:
+          VALIDATE_RESULT: ${{ needs.validate.result }}
+          MONO_RESULT: ${{ needs.rebuild-mono.result }}
+          PIXEL_RESULT: ${{ needs.rebuild-pixel.result }}
+        run: |
+          test "$VALIDATE_RESULT" = success
+          case "$MONO_RESULT" in success|skipped) ;; *) exit 1 ;; esac
+          case "$PIXEL_RESULT" in success|skipped) ;; *) exit 1 ;; esac
 
   build:
     name: Build release artifacts

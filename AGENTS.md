@@ -105,9 +105,11 @@ conventions.
 
 ### CI execution
 
-- The required `Build and test` PR check validates the committed release fonts
+- The fast `Validate committed release fonts` job checks committed binaries
   directly with `requirements-checks.txt`; generated npm font fixtures are
-  assembled from those committed binaries before the release checks run.
+  assembled from those binaries before the release checks run. The required
+  `Build and test` check aggregates that result with every applicable family
+  rebuild, so a source-build failure cannot be bypassed by the fast path.
 - Pull requests rebuild Mono or Pixel only when that family's source or a
   shared build input changes. A Pixel-only change must not pay for a Mono
   rebuild, and vice versa. Sans remains based on reviewed native Glyphs
