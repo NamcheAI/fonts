@@ -33,6 +33,7 @@ packages/next/dist/fonts/
 artifacts/
 out/badges/
 out/fontspector/
+out/pixel-compiled/
 
 # Autosaved by application when editing
 ######################

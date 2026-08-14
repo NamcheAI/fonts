@@ -493,6 +493,38 @@ def render_issue_33() -> None:
     image.save(OUTPUT / "issue-33-mono-hmetrics.png", optimize=True)
 
 
+def render_issue_34() -> None:
+    image, draw = canvas(
+        34,
+        "INDIAN RUPEE",
+        "One Geist-inspired construction, expressed through all five Pixel element shapes.",
+        1440,
+    )
+    label = font(MONO_DIR / "NamcheShadowMono-Regular.ttf", 20)
+    styles = ("Square", "Circle", "Grid", "Triangle", "Line")
+    section(draw, 340, "₹ · five element shapes · one 38-unit grid")
+    for column, style in enumerate(styles):
+        path = PIXEL_DIR / f"NamcheShadowPixel-{style}.ttf"
+        x = 65 + column * 300
+        draw.text((x, 405), "₹", font=font(path, 225), fill=TEXT)
+        draw.text((x + 12, 690), style.upper(), font=label, fill=MUTED)
+
+    section(draw, 785, "Currency and figure context")
+    for row, style in enumerate(styles):
+        path = PIXEL_DIR / f"NamcheShadowPixel-{style}.ttf"
+        y = 855 + row * 92
+        draw.text((72, y + 22), style.upper(), font=label, fill=MUTED)
+        draw.text((300, y), "₹123   € $ £ ¥", font=font(path, 60), fill=TEXT)
+        draw.text((1260, y + 22), "U+20B9", font=label, fill=GREEN)
+
+    footer(
+        draw,
+        image.height,
+        "Pixel TTF statics · Geist Sans rupee structure translated to 109 pixel components",
+    )
+    image.save(OUTPUT / "issue-34-pixel-rupee.png", optimize=True)
+
+
 def render_issue_35() -> None:
     image, draw = canvas(
         35,
@@ -588,6 +620,7 @@ def main() -> None:
     render_issue_25()
     render_issue_32()
     render_issue_33()
+    render_issue_34()
     render_issue_35()
     render_issue_37()
     for path in sorted(OUTPUT.glob("issue-*.png")):

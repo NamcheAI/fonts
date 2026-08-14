@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Finalize metadata omitted from Namche Shadow Pixel static exports.
+"""Finalize source additions omitted from approved Pixel static exports.
 
 The maintained Glyphs source and the Pixel variable font contain U+2028 and
 U+2029, both at 600 units. The approved native static exports predate that
 source correction. The source also carries ligature-caret anchors, including
 the user-facing fi and fl positions, that are missing from the native statics.
 This narrowly scoped finalizer restores both kinds of data without changing
-existing outlines.
+existing outlines. It can also merge reviewed, source-built additions such as
+the Indian rupee into the approved native statics while preserving every
+pre-existing glyph.
 """
 
 from __future__ import annotations
@@ -18,7 +20,10 @@ from pathlib import Path
 import glyphsLib
 from fontTools.misc.psCharStrings import T2CharString
 from fontTools.otlLib.builder import buildCoverage, buildLigGlyph
+from fontTools.pens.basePen import NullPen
 from fontTools.pens.boundsPen import BoundsPen
+from fontTools.pens.recordingPen import RecordingPen
+from fontTools.pens.t2CharStringPen import T2CharStringPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.tables import otTables
@@ -31,6 +36,8 @@ FONT_SUFFIXES = {".otf", ".ttf", ".woff2"}
 ROOT = Path(__file__).resolve().parent.parent
 PIXEL_SOURCE = ROOT / "sources" / "NamcheShadowPixel.glyphspackage"
 REQUIRED_LIGATURES = ("fi", "fl")
+RUPEE_CODEPOINT = 0x20B9
+RUPEE_GLYPH_NAME = "uni20B9"
 
 
 @lru_cache(maxsize=1)
@@ -110,6 +117,111 @@ def _add_glyph(font: TTFont, glyph_name: str) -> None:
     font["maxp"].numGlyphs = len(order)
 
 
+def _outline_recording(font: TTFont, glyph_name: str) -> tuple:
+    pen = RecordingPen()
+    font.getGlyphSet()[glyph_name].draw(pen)
+    return tuple(pen.value)
+
+
+def _set_cff_charstring(font: TTFont, glyph_name: str, charstring: T2CharString) -> None:
+    charstrings = font["CFF "].cff.topDictIndex[0].CharStrings
+    if charstrings.charStringsAreIndexed:
+        if glyph_name in charstrings.charStrings:
+            index = charstrings.charStrings[glyph_name]
+            charstrings.charStringsIndex[index] = charstring
+        else:
+            index = len(charstrings.charStringsIndex)
+            charstrings.charStringsIndex.append(charstring)
+            charstrings.charStrings[glyph_name] = index
+    else:
+        charstrings.charStrings[glyph_name] = charstring
+
+
+def _cff_charstring_width(font: TTFont, glyph_name: str) -> int:
+    charstring = font["CFF "].cff.topDictIndex[0].CharStrings[glyph_name]
+    charstring.draw(NullPen())
+    return round(charstring.width)
+
+
+def _copy_outline(
+    font: TTFont,
+    glyph_name: str,
+    compiled_font: TTFont,
+    compiled_glyph_name: str,
+) -> None:
+    source_glyph_set = compiled_font.getGlyphSet()
+    if "glyf" in font:
+        pen = TTGlyphPen(source_glyph_set)
+        source_glyph_set[compiled_glyph_name].draw(pen)
+        font["glyf"].glyphs[glyph_name] = pen.glyph()
+        return
+    if "CFF " in font:
+        top_dict = font["CFF "].cff.topDictIndex[0]
+        width = compiled_font["hmtx"].metrics[compiled_glyph_name][0]
+        private = top_dict.Private
+        charstring_width = (
+            None if width == private.defaultWidthX else width - private.nominalWidthX
+        )
+        pen = T2CharStringPen(charstring_width, source_glyph_set)
+        source_glyph_set[compiled_glyph_name].draw(pen)
+        charstring = pen.getCharString(
+            private=private,
+            globalSubrs=font["CFF "].cff.GlobalSubrs,
+        )
+        _set_cff_charstring(font, glyph_name, charstring)
+        return
+    raise ValueError("font has neither TrueType nor CFF outlines")
+
+
+def _restore_rupee(font: TTFont, compiled_font: TTFont) -> bool:
+    compiled_cmap = compiled_font.getBestCmap() or {}
+    compiled_glyph_name = compiled_cmap.get(RUPEE_CODEPOINT)
+    if compiled_glyph_name is None:
+        raise ValueError("compiled Pixel font is missing U+20B9")
+    if not has_ink(compiled_font, compiled_glyph_name):
+        raise ValueError("compiled Pixel U+20B9 must contain ink")
+
+    target_cmap = font.getBestCmap() or {}
+    glyph_name = target_cmap.get(RUPEE_CODEPOINT, RUPEE_GLYPH_NAME)
+    order = font.getGlyphOrder()
+    missing = glyph_name not in order
+    outline_changed = missing or _outline_recording(
+        font, glyph_name
+    ) != _outline_recording(compiled_font, compiled_glyph_name)
+    metrics = compiled_font["hmtx"].metrics[compiled_glyph_name]
+    metrics_changed = missing or font["hmtx"].metrics.get(glyph_name) != metrics
+    cff_width_changed = (
+        "CFF " in font
+        and not missing
+        and _cff_charstring_width(font, glyph_name) != metrics[0]
+    )
+    cmap_changed = any(
+        table.isUnicode() and table.cmap.get(RUPEE_CODEPOINT) != glyph_name
+        for table in font["cmap"].tables
+    )
+    if not (outline_changed or metrics_changed or cff_width_changed or cmap_changed):
+        return False
+
+    _copy_outline(font, glyph_name, compiled_font, compiled_glyph_name)
+    if missing:
+        # Append so no existing binary glyph ID moves. Inserting at the source
+        # order position can invalidate lazily decoded TrueType components.
+        order.append(glyph_name)
+        if "CFF " in font:
+            # FontTools normally aliases the CFF charset to glyph order, but
+            # preserve the invariant explicitly if that implementation changes.
+            charset = font["CFF "].cff.topDictIndex[0].charset
+            if glyph_name not in charset:
+                charset.append(glyph_name)
+        font.setGlyphOrder(order)
+        font["maxp"].numGlyphs = len(order)
+    font["hmtx"].metrics[glyph_name] = metrics
+    for table in font["cmap"].tables:
+        if table.isUnicode():
+            table.cmap[RUPEE_CODEPOINT] = glyph_name
+    return True
+
+
 def ligature_caret_coordinates(font: TTFont, glyph_name: str) -> tuple[int, ...]:
     if "GDEF" not in font or font["GDEF"].table.LigCaretList is None:
         return ()
@@ -152,8 +264,9 @@ def _restore_ligature_carets(font: TTFont) -> bool:
     return True
 
 
-def finalize_font(path: Path) -> bool:
+def finalize_font(path: Path, compiled_path: Path | None = None) -> bool:
     font = TTFont(path, recalcTimestamp=False)
+    compiled_font = TTFont(compiled_path, recalcTimestamp=False) if compiled_path else None
     changed = False
     try:
         best_cmap = font.getBestCmap() or {}
@@ -175,11 +288,15 @@ def finalize_font(path: Path) -> bool:
                 raise ValueError(f"{path}: {glyph_name} must remain inkless")
 
         changed = _restore_ligature_carets(font) or changed
+        if compiled_font is not None:
+            changed = _restore_rupee(font, compiled_font) or changed
 
         if changed:
             font.save(path, reorderTables=False)
         return changed
     finally:
+        if compiled_font is not None:
+            compiled_font.close()
         font.close()
 
 
@@ -201,12 +318,26 @@ def main() -> int:
         default=Path("fonts/NamcheShadowPixel"),
         help="Namche Shadow Pixel release-family directory",
     )
+    parser.add_argument(
+        "--compiled",
+        type=Path,
+        help="matching gftools-built Pixel statics containing reviewed source additions",
+    )
     args = parser.parse_args()
 
     paths = font_files(args.root)
     if not paths:
         parser.error(f"no Pixel static fonts found below {args.root}")
-    changed = [path for path in paths if finalize_font(path)]
+    compiled_paths = {}
+    if args.compiled:
+        for path in paths:
+            candidate = args.compiled / path.relative_to(args.root)
+            if not candidate.is_file():
+                parser.error(f"missing compiled Pixel static: {candidate}")
+            compiled_paths[path] = candidate
+    changed = [
+        path for path in paths if finalize_font(path, compiled_paths.get(path))
+    ]
     print(f"Verified {len(paths)} Pixel statics; updated {len(changed)}")
     return 0
 
