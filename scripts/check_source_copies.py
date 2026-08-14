@@ -7,6 +7,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
+PIXEL_PACKAGE = "NamcheShadowPixel.glyphspackage"
+APPROVED_EXTRA_FILES = {
+    PIXEL_PACKAGE: {"glyphs/rupeeI_ndian.glyph"},
+}
 SOURCE_PAIRS = (
     (
         ROOT / "originals/geist/sources/GeistMono.glyphspackage",
@@ -66,14 +70,19 @@ def check_pair(original: Path, maintained: Path, anchor_only: set[str]) -> list[
     errors: list[str] = []
     original_files = relative_files(original)
     maintained_files = relative_files(maintained)
-    if original_files != maintained_files:
+    approved_extra = APPROVED_EXTRA_FILES.get(maintained.name, set())
+    if original_files != maintained_files - approved_extra:
         missing = sorted(original_files - maintained_files)
-        extra = sorted(maintained_files - original_files)
+        extra = sorted(maintained_files - original_files - approved_extra)
         errors.append(f"{maintained.name}: source tree differs; missing={missing}, extra={extra}")
 
     for relative in sorted(original_files & maintained_files):
         original_text = (original / relative).read_text()
         maintained_text = (maintained / relative).read_text()
+        if maintained.name == PIXEL_PACKAGE and relative == "order.plist":
+            maintained_text = maintained_text.replace(
+                "pixel.triangle,\nrupeeIndian\n)", "pixel.triangle\n)"
+            ).removesuffix("\n")
         if relative in anchor_only:
             original_text = strip_anchor_blocks(original_text)
             maintained_text = strip_anchor_blocks(maintained_text)
@@ -91,7 +100,10 @@ def main() -> int:
     if errors:
         print("\n".join(errors))
         return 1
-    print("Verified Mono/Pixel source copies; approved Mono differences are anchor-only")
+    print(
+        "Verified Mono/Pixel source copies; approved differences are Mono anchors "
+        "and the reviewed Pixel rupee"
+    )
     return 0
 
 

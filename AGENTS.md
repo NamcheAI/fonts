@@ -19,6 +19,10 @@ conventions.
   GitHub account (`fizzybubbele`) and Ruhm etc. (`https://ruhmetc.com/`) in
   user-facing credits. AI tools are tooling assistants, not designers or
   copyright authors.
+- Michael's approval is not a default merge gate. Tag him when an issue depends
+  on designer-supplied source, needs his specific historical context, or
+  explicitly requests his review; otherwise the project reviews and approves
+  focused design work through its normal issue, proof, PR, and CI workflow.
 
 ## Namche Shadow Sans production rules
 
@@ -52,13 +56,17 @@ conventions.
 - Keep `Yusbig-cy`, `yusbig-cy`, `mu`, `baht`, and `peso` parked from the
   variable build until their rounded masters match. They must remain in every
   static.
-- Namche Shadow Mono and Namche Shadow Pixel remain outline-identical renamed
-  Geist derivatives until a separately reviewed design change says otherwise.
+- Namche Shadow Mono remains an outline-identical renamed Geist derivative.
+  Pixel may diverge only through a focused issue and reviewed design proof;
+  U+20B9 **₹** is the first approved addition and follows the inherited Geist
+  rupee construction on Pixel's existing 38-unit component grid.
 - `scripts/finalize_pixel_statics.py` restores the source's inkless U+2028 and
   U+2029 glyphs and all source-defined `caret_*` positions (including `fi` and
-  `fl`) after native Pixel statics are restored. `make check-pixel-separators`
-  and `make check-pixel-ligature-carets` block regressions across release and
-  npm binaries.
+  `fl`) after native Pixel statics are restored. It also merges reviewed new
+  Pixel glyphs from the reproducible gftools staging build without replacing
+  existing native outlines. `make check-pixel-separators`,
+  `make check-pixel-ligature-carets`, and `make check-pixel-rupee` block
+  regressions across release and npm binaries.
 - Every release and npm binary uses OS/2 version 4 or later. Sans and Mono set
   `fsSelection` WWS bit 8 and omit name IDs 21/22. Pixel keeps bit 8 clear and
   mirrors its legacy family/subfamily names into WWS IDs 21/22 because the
@@ -73,7 +81,9 @@ conventions.
 ## Required workflow
 
 1. Start with a GitHub issue for a font bug or design correction. Record the
-   expected visual result and tag Michael when his review or source is relevant.
+   expected visual result. Designer approval is required only when the issue
+   explicitly says so; do not infer a Michael review gate from the fact that a
+   change is visual.
 2. Create a focused `codex/<topic>` or `jodok/<topic>` branch. Never push
    directly to protected `main` and never force-push `main`.
 3. Keep changes single-topic. Do not mix a font correction with unrelated

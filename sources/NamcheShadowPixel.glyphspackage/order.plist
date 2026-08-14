@@ -487,5 +487,6 @@ _diagonal.001,
 pixel.circle,
 pixel.grid,
 pixel.line,
-pixel.triangle
+pixel.triangle,
+rupeeIndian
 )

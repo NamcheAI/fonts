@@ -1,4 +1,5 @@
 SOURCES=$(shell python3 scripts/read-config.py --sources )
+PIXEL_SOURCES=$(shell find sources/NamcheShadowPixel.glyphspackage -type f)
 FAMILY=$(shell python3 scripts/read-config.py --family )
 SHAPING_REPORTS=out/fontspector/NamcheShadowSansVF-fontspector-report.json out/fontspector/NamcheShadowSans-fontspector-report.json out/fontspector/NamcheShadowMonoVF-fontspector-report.json out/fontspector/NamcheShadowMono-fontspector-report.json
 SHAPING_FONT_DIRS=fonts/NamcheShadowSans/variable fonts/NamcheShadowSans/ttf fonts/NamcheShadowMono/variable fonts/NamcheShadowMono/ttf
@@ -26,7 +27,9 @@ venv-pixel: venv-pixel/touchfile
 customize: venv
 	. venv/bin/activate; python3 scripts/customize.py
 
-build.stamp: venv venv-pixel sources/config-NamcheShadowSans.yaml $(SOURCES)
+build.stamp: venv venv-pixel sources/config-NamcheShadowSans.yaml \
+	sources/compile-NamcheShadowPixelStatics.yaml \
+	$(PIXEL_SOURCES) $(SOURCES)
 	$(MAKE) check-source-copies
 	rm -rf fonts namche-shadow-font namche-shadow-font.zip
 	# Namche Shadow Sans statics are native Glyphs exports: gftools does not run
@@ -44,13 +47,18 @@ build.stamp: venv venv-pixel sources/config-NamcheShadowSans.yaml $(SOURCES)
 		else \
 			( . venv/bin/activate && gftools builder "$$config" ); \
 		fi; \
-	done
+		done
+	# Compile reviewed Pixel source additions separately. The finalizer merges only
+	# those additions into the approved native statics, preserving every existing
+	# release outline and table.
+	rm -rf out/pixel-compiled
+	( . venv-pixel/bin/activate && gftools builder sources/compile-NamcheShadowPixelStatics.yaml )
 	# Sans statics and Pixel statics/webfonts are native Glyphs exports committed
 	# to the repository. Restore them after the clean build so release and npm
 	# artifacts use the approved outlines.
 	git checkout -- fonts/NamcheShadowSans/otf fonts/NamcheShadowSans/ttf fonts/NamcheShadowSans/webfonts fonts/NamcheShadowSans/variable
 	git checkout -- fonts/NamcheShadowPixel/otf fonts/NamcheShadowPixel/ttf fonts/NamcheShadowPixel/webfonts
-	. venv/bin/activate; python3 scripts/finalize_pixel_statics.py fonts/NamcheShadowPixel
+	. venv/bin/activate; python3 scripts/finalize_pixel_statics.py fonts/NamcheShadowPixel --compiled out/pixel-compiled
 	# Sans metadata was finalized with the native exports; leave those committed
 	# files byte-for-byte intact. Normalize only families generated in this run.
 	. venv/bin/activate; python3 scripts/rename_font_metadata.py fonts/NamcheShadowMono
@@ -62,8 +70,8 @@ build.stamp: venv venv-pixel sources/config-NamcheShadowSans.yaml $(SOURCES)
 	touch build.stamp
 
 check-source-copies:
-	# Mono and Pixel remain outline-identical Geist derivatives. The checker
-	# permits only the reviewed Mono anchor metadata needed for language shaping.
+	# Mono remains outline-identical; Pixel permits the separately reviewed rupee.
+	# The checker also permits only reviewed Mono anchor metadata.
 	python3 scripts/check_source_copies.py
 
 check-sans-variable: venv
@@ -151,7 +159,7 @@ venv-pixel/touchfile: Makefile
 	touch venv-pixel/touchfile
 
 test: fontspector check-language-shaping check-pixel-separators \
-	check-pixel-ligature-carets check-mono-hmetrics
+	check-pixel-ligature-carets check-pixel-rupee check-mono-hmetrics
 
 test-scripts: venv
 	. venv/bin/activate; python3 -m unittest discover -s tests -p 'test_*.py'
@@ -174,6 +182,9 @@ check-pixel-separators: venv build.stamp
 
 check-pixel-ligature-carets: venv build.stamp
 	. venv/bin/activate; python3 scripts/check_pixel_ligature_carets.py
+
+check-pixel-rupee: venv build.stamp
+	. venv/bin/activate; python3 scripts/check_pixel_rupee.py
 
 check-mono-hmetrics: venv build.stamp
 	. venv/bin/activate; python3 scripts/check_mono_hmetrics.py
