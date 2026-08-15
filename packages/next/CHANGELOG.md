@@ -1,5 +1,18 @@
 # @namche/namche-shadow
 
+## 0.2.1
+
+### Patch Changes
+
+- 7935443: Add Pixel dotted-circle coverage and correct soft-dotted shaping for į with top marks.
+- 6c110af: Add a Pixel-native Indian rupee sign to every Namche Shadow Pixel style.
+- c0b4e4a: Add spec-correct WWS metadata for Sans, Mono, and Pixel without changing their public typographic family or style names.
+- e3e5ad0: Use Windows-compatible aliases for overlong Namche Shadow Mono italic variable-font instances.
+- d007009: Preserve the source-defined text-cursor positions inside the Pixel fi and fl ligatures.
+- e692620: Fix Cyrillic mark attachment and soft-dotted shaping in Namche Shadow Sans and Mono.
+- e3fa8b3: Restore the inkless Unicode line and paragraph separators in all Namche Shadow Pixel webfonts.
+- 4d8436a: Restore the intended Latin script/language tags and Namche vendor ID in Namche Shadow Pixel binaries.
+
 ## 0.2.0
 
 ### Minor Changes
