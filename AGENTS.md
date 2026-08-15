@@ -126,6 +126,10 @@ conventions.
   expensive work so path filtering cannot leave the required check pending.
 - PR concurrency must cancel superseded runs; a new push should not wait behind
   obsolete font builds from the same pull request.
+- Keep Changesets major versions compatible: `@changesets/cli` v3 requires
+  `changesets/action` v2. The v1 action parses the old CLI v2 tag output and can
+  silently leave a successful npm publish without its GitHub release or font
+  ZIP. Preserve the v2 input names and the post-publish ZIP upload gate.
 
 ## Validation before a PR
 

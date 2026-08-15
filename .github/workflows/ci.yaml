@@ -464,15 +464,14 @@ jobs:
           mv artifacts/packages/next/dist/fonts packages/next/dist/fonts
       - name: Create Release Pull Request or Publish
         id: changesets
-        uses: changesets/action@v1.8.0
+        uses: changesets/action@v2.1.0
         with:
-          publish: pnpm run release
-          version: pnpm run version
+          publish-script: pnpm run release
+          version-script: pnpm run version
           cwd: packages/next
-          title: 'changesets: update versions of packages for release'
-          commitMode: github-api
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          pr-title: 'changesets: update versions of packages for release'
+          commit-message: 'Version Packages'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload font zip to GitHub Release
         if: steps.changesets.outputs.published == 'true'
         env:
