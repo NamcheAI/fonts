@@ -9,7 +9,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PIXEL_PACKAGE = "NamcheShadowPixel.glyphspackage"
 APPROVED_EXTRA_FILES = {
-    PIXEL_PACKAGE: {"glyphs/rupeeI_ndian.glyph"},
+    PIXEL_PACKAGE: {
+        "glyphs/dottedC_ircle.glyph",
+        "glyphs/rupeeI_ndian.glyph",
+    },
 }
 SOURCE_PAIRS = (
     (
@@ -81,6 +84,9 @@ def check_pair(original: Path, maintained: Path, anchor_only: set[str]) -> list[
         maintained_text = (maintained / relative).read_text()
         if maintained.name == PIXEL_PACKAGE and relative == "order.plist":
             maintained_text = maintained_text.replace(
+                "rightWaveArrow,\ndottedCircle,\nlozenge", "rightWaveArrow,\nlozenge"
+            )
+            maintained_text = maintained_text.replace(
                 "pixel.triangle,\nrupeeIndian\n)", "pixel.triangle\n)"
             ).removesuffix("\n")
         if relative in anchor_only:
@@ -102,7 +108,7 @@ def main() -> int:
         return 1
     print(
         "Verified Mono/Pixel source copies; approved differences are Mono anchors "
-        "and the reviewed Pixel rupee"
+        "and the reviewed Pixel rupee/dotted-circle additions"
     )
     return 0
 

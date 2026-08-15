@@ -95,6 +95,7 @@ jobs:
               'sources/compile-NamcheShadowPixelStatics.yaml',
               'scripts/check_pixel_ligature_carets.py',
               'scripts/check_pixel_rupee.py',
+              'scripts/check_pixel_shaping.py',
               'scripts/check_pixel_separators.py',
               'scripts/finalize_pixel_statics.py'
             );
@@ -165,6 +166,7 @@ jobs:
           python scripts/check_pixel_separators.py
           python scripts/check_pixel_ligature_carets.py
           python scripts/check_pixel_rupee.py
+          python scripts/check_pixel_shaping.py
 
       - name: Set up Fontspector
         if: >-
@@ -205,6 +207,12 @@ jobs:
           github.event_name == 'pull_request' &&
           needs.changes.outputs.pixel_qa == 'true'
         run: make fontspector-pixel
+
+      - name: Check Pixel mark shaping
+        if: >-
+          github.event_name == 'pull_request' &&
+          needs.changes.outputs.pixel_qa == 'true'
+        run: python scripts/check_pixel_shaping.py --fontspector-report out/fontspector/NamcheShadowPixel-fontspector-report.json
 
   rebuild-mono:
     name: Rebuild changed Mono source
@@ -276,6 +284,7 @@ jobs:
           venv/bin/python scripts/check_pixel_ligature_carets.py
           venv/bin/python scripts/check_pixel_rupee.py
           make fontspector-pixel
+          venv/bin/python scripts/check_pixel_shaping.py --fontspector-report out/fontspector/NamcheShadowPixel-fontspector-report.json
 
   required:
     name: Build and test

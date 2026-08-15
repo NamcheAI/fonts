@@ -47,6 +47,7 @@ def remove_rupee_mapping(source: Path, output: Path) -> None:
 
 def remove_rupee_glyph(source: Path, output: Path) -> None:
     font = TTFont(source, recalcTimestamp=False)
+    font.ensureDecompiled()
     glyph_name = (font.getBestCmap() or {})[0x20B9]
     for table in font["cmap"].tables:
         if table.isUnicode():
@@ -60,18 +61,17 @@ def remove_rupee_glyph(source: Path, output: Path) -> None:
     hmtx = font["hmtx"]
     post = font["post"]
     order = font.getGlyphOrder()
-    if order[-1] != glyph_name:
-        raise AssertionError("rupee fixture must be the final glyph")
-    order.pop()
+    order.remove(glyph_name)
     if glyf is not None:
         glyf.glyphs.pop(glyph_name)
     else:
         assert top_dict is not None
         assert charstrings is not None
         index = charstrings.charStrings.pop(glyph_name)
-        if index != len(charstrings.charStringsIndex) - 1:
-            raise AssertionError("rupee CFF fixture must use the final charstring")
-        charstrings.charStringsIndex.items.pop()
+        charstrings.charStringsIndex.items.pop(index)
+        for name, charstring_index in tuple(charstrings.charStrings.items()):
+            if charstring_index > index:
+                charstrings.charStrings[name] = charstring_index - 1
         if glyph_name in top_dict.charset:
             top_dict.charset.remove(glyph_name)
     hmtx.metrics.pop(glyph_name)

@@ -59,14 +59,17 @@ conventions.
 - Namche Shadow Mono remains an outline-identical renamed Geist derivative.
   Pixel may diverge only through a focused issue and reviewed design proof;
   U+20B9 **₹** is the first approved addition and follows the inherited Geist
-  rupee construction on Pixel's existing 38-unit component grid.
+  rupee construction on Pixel's existing 38-unit component grid. U+25CC **◌**
+  is the second approved addition: a 16-component ring on the same grid with
+  `top`, `topright`, `center`, `bottom`, and `ogonek` anchors.
 - `scripts/finalize_pixel_statics.py` restores the source's inkless U+2028 and
   U+2029 glyphs and all source-defined `caret_*` positions (including `fi` and
   `fl`) after native Pixel statics are restored. It also merges reviewed new
   Pixel glyphs from the reproducible gftools staging build without replacing
-  existing native outlines. `make check-pixel-separators`,
-  `make check-pixel-ligature-carets`, and `make check-pixel-rupee` block
-  regressions across release and npm binaries.
+  existing native outlines. It may refresh only `GDEF`, `GSUB`, and `GPOS`
+  from that same build. `make check-pixel-separators`,
+  `make check-pixel-ligature-carets`, `make check-pixel-rupee`, and
+  `make check-pixel-shaping` block regressions across release and npm binaries.
 - Every release and npm binary uses OS/2 version 4 or later. Sans and Mono set
   `fsSelection` WWS bit 8 and omit name IDs 21/22. Pixel keeps bit 8 clear and
   mirrors its legacy family/subfamily names into WWS IDs 21/22 because the

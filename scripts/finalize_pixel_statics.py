@@ -14,6 +14,7 @@ pre-existing glyph.
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
 
@@ -26,6 +27,7 @@ from fontTools.pens.recordingPen import RecordingPen
 from fontTools.pens.t2CharStringPen import T2CharStringPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib import TTFont
+from fontTools.ttLib.reorderGlyphs import reorderGlyphs
 from fontTools.ttLib.tables import otTables
 
 
@@ -38,6 +40,9 @@ PIXEL_SOURCE = ROOT / "sources" / "NamcheShadowPixel.glyphspackage"
 REQUIRED_LIGATURES = ("fi", "fl")
 RUPEE_CODEPOINT = 0x20B9
 RUPEE_GLYPH_NAME = "uni20B9"
+DOTTED_CIRCLE_CODEPOINT = 0x25CC
+DOTTED_CIRCLE_GLYPH_NAME = "uni25CC"
+SHAPING_TABLES = ("GDEF", "GSUB", "GPOS")
 
 
 @lru_cache(maxsize=1)
@@ -173,16 +178,21 @@ def _copy_outline(
     raise ValueError("font has neither TrueType nor CFF outlines")
 
 
-def _restore_rupee(font: TTFont, compiled_font: TTFont) -> bool:
+def _restore_source_glyph(
+    font: TTFont,
+    compiled_font: TTFont,
+    codepoint: int,
+    canonical_name: str,
+) -> bool:
     compiled_cmap = compiled_font.getBestCmap() or {}
-    compiled_glyph_name = compiled_cmap.get(RUPEE_CODEPOINT)
+    compiled_glyph_name = compiled_cmap.get(codepoint)
     if compiled_glyph_name is None:
-        raise ValueError("compiled Pixel font is missing U+20B9")
+        raise ValueError(f"compiled Pixel font is missing U+{codepoint:04X}")
     if not has_ink(compiled_font, compiled_glyph_name):
-        raise ValueError("compiled Pixel U+20B9 must contain ink")
+        raise ValueError(f"compiled Pixel U+{codepoint:04X} must contain ink")
 
     target_cmap = font.getBestCmap() or {}
-    glyph_name = target_cmap.get(RUPEE_CODEPOINT, RUPEE_GLYPH_NAME)
+    glyph_name = target_cmap.get(codepoint, canonical_name)
     order = font.getGlyphOrder()
     missing = glyph_name not in order
     outline_changed = missing or _outline_recording(
@@ -196,7 +206,7 @@ def _restore_rupee(font: TTFont, compiled_font: TTFont) -> bool:
         and _cff_charstring_width(font, glyph_name) != metrics[0]
     )
     cmap_changed = any(
-        table.isUnicode() and table.cmap.get(RUPEE_CODEPOINT) != glyph_name
+        table.isUnicode() and table.cmap.get(codepoint) != glyph_name
         for table in font["cmap"].tables
     )
     if not (outline_changed or metrics_changed or cff_width_changed or cmap_changed):
@@ -218,8 +228,37 @@ def _restore_rupee(font: TTFont, compiled_font: TTFont) -> bool:
     font["hmtx"].metrics[glyph_name] = metrics
     for table in font["cmap"].tables:
         if table.isUnicode():
-            table.cmap[RUPEE_CODEPOINT] = glyph_name
+            table.cmap[codepoint] = glyph_name
     return True
+
+
+def _restore_shaping_tables(font: TTFont, compiled_font: TTFont) -> bool:
+    target_order = font.getGlyphOrder()
+    compiled_order = compiled_font.getGlyphOrder()
+    compiled_names = set(compiled_order)
+    missing = compiled_names - set(target_order)
+    if missing:
+        raise ValueError(
+            f"compiled Pixel shaping references missing target glyphs: {sorted(missing)}"
+        )
+    target_relative_order = [name for name in target_order if name in compiled_names]
+    if compiled_order != target_relative_order:
+        # Native statics retain an extra soft hyphen and append reviewed source
+        # additions so existing glyph IDs do not move. Reorder the disposable
+        # compiled font to the same relative order before copying layout tables;
+        # fontTools then updates coverage-parallel arrays together.
+        reorderGlyphs(compiled_font, target_relative_order)
+
+    changed = False
+    for tag in SHAPING_TABLES:
+        if tag not in compiled_font:
+            raise ValueError(f"compiled Pixel font is missing {tag}")
+        compiled_font[tag].ensureDecompiled()
+        replacement = deepcopy(compiled_font[tag])
+        if tag not in font or replacement.compile(font) != font.getTableData(tag):
+            changed = True
+        font[tag] = replacement
+    return changed
 
 
 def ligature_caret_coordinates(font: TTFont, glyph_name: str) -> tuple[int, ...]:
@@ -287,9 +326,18 @@ def finalize_font(path: Path, compiled_path: Path | None = None) -> bool:
             if has_ink(font, glyph_name):
                 raise ValueError(f"{path}: {glyph_name} must remain inkless")
 
-        changed = _restore_ligature_carets(font) or changed
         if compiled_font is not None:
-            changed = _restore_rupee(font, compiled_font) or changed
+            changed = _restore_source_glyph(
+                font, compiled_font, RUPEE_CODEPOINT, RUPEE_GLYPH_NAME
+            ) or changed
+            changed = _restore_source_glyph(
+                font,
+                compiled_font,
+                DOTTED_CIRCLE_CODEPOINT,
+                DOTTED_CIRCLE_GLYPH_NAME,
+            ) or changed
+            changed = _restore_shaping_tables(font, compiled_font) or changed
+        changed = _restore_ligature_carets(font) or changed
 
         if changed:
             font.save(path, reorderTables=False)
