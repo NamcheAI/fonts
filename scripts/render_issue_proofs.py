@@ -605,6 +605,34 @@ def render_issue_37() -> None:
     image.save(OUTPUT / "issue-37-pixel-ligature-carets.png", optimize=True)
 
 
+def render_issue_36() -> None:
+    image, draw = canvas(
+        36,
+        "PIXEL MARK SHAPING",
+        "The dotted circle receives every mark; į loses its base dot before top marks.",
+        1370,
+    )
+    label = font(MONO_DIR / "NamcheShadowMono-Regular.ttf", 20)
+    draw.text((270, 350), "DOTTED CIRCLE", font=label, fill=MUTED)
+    draw.text((650, 350), "REQUIRED", font=label, fill=MUTED)
+    draw.text((1110, 350), "OPTIONAL", font=label, fill=MUTED)
+    for row, style in enumerate(("Circle", "Grid", "Line", "Square", "Triangle")):
+        path = PIXEL_DIR / f"NamcheShadowPixel-{style}.ttf"
+        y = 405 + row * 175
+        draw.text((72, y + 50), style.upper(), font=label, fill=MUTED)
+        draw.text((270, y), "◌́ ◌̧ ◌̨", font=font(path, 80), fill=TEXT)
+        draw.text((650, y + 9), "į́ į̌ į̀ į̃ į̄ į̂", font=font(path, 62), fill=TEXT)
+        draw.text((1110, y + 14), "į̆ į̈ į̊ į̒ į̋ į̇", font=font(path, 54), fill=TEXT)
+        draw.text((1510, y + 48), "PASS", font=label, fill=GREEN, anchor="ra")
+
+    footer(
+        draw,
+        image.height,
+        "All five Namche Shadow Pixel TTF statics · U+25CC + ccmp/mark/mkmk",
+    )
+    image.save(OUTPUT / "issue-36-pixel-shaping.png", optimize=True)
+
+
 def main() -> None:
     if not features.check_feature("raqm"):
         raise SystemExit(
@@ -622,6 +650,7 @@ def main() -> None:
     render_issue_33()
     render_issue_34()
     render_issue_35()
+    render_issue_36()
     render_issue_37()
     for path in sorted(OUTPUT.glob("issue-*.png")):
         print(f"Wrote {path.relative_to(ROOT)}")

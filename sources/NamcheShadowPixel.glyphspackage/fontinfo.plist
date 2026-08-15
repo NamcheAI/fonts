@@ -98,6 +98,7 @@ code = "lookup ccmp_DFLT_1 {
 	@CombiningTopAccents = [acutecomb brevecomb caroncomb circumflexcomb commaturnedabovecomb dieresiscomb dotaccentcomb gravecomb hungarumlautcomb macroncomb ringcomb tildecomb];
 	lookupflag UseMarkFilteringSet @CombiningTopAccents;
 	sub i' @CombiningTopAccents by idotless;
+	sub iogonek' @CombiningTopAccents by idotless ogonekcomb;
 	sub j' @CombiningTopAccents by jdotless;
 } ccmp_DFLT_1;
 

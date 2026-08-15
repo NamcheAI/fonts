@@ -63,15 +63,15 @@ build-pixel: venv venv-pixel sources/config-NamcheShadowPixel.yaml \
 	# Pixel's virtual-master support needs the pinned dev gftools build.
 	rm -rf fonts/NamcheShadowPixel out/pixel-compiled
 	. venv-pixel/bin/activate; gftools builder sources/config-NamcheShadowPixel.yaml
-	# Compile reviewed source additions separately. The finalizer merges only
-	# those additions into the approved native statics.
+	# Compile reviewed source additions and layout separately. The finalizer
+	# merges only those additions and GDEF/GSUB/GPOS into native statics.
 	. venv-pixel/bin/activate; gftools builder sources/compile-NamcheShadowPixelStatics.yaml
 	git checkout -- fonts/NamcheShadowPixel/otf fonts/NamcheShadowPixel/ttf fonts/NamcheShadowPixel/webfonts
 	. venv/bin/activate; python3 scripts/finalize_pixel_statics.py fonts/NamcheShadowPixel --compiled out/pixel-compiled
 	. venv/bin/activate; python3 scripts/rename_font_metadata.py fonts/NamcheShadowPixel
 
 check-source-copies:
-	# Mono remains outline-identical; Pixel permits the separately reviewed rupee.
+	# Mono remains outline-identical; Pixel permits reviewed source additions.
 	# The checker also permits only reviewed Mono anchor metadata.
 	python3 scripts/check_source_copies.py
 
@@ -160,7 +160,7 @@ venv-pixel/touchfile: Makefile
 	touch venv-pixel/touchfile
 
 test: build.stamp fontspector-release check-language-shaping check-pixel-separators \
-	check-pixel-ligature-carets check-pixel-rupee check-mono-hmetrics
+	check-pixel-ligature-carets check-pixel-rupee check-pixel-shaping check-mono-hmetrics
 
 test-scripts: venv
 	. venv/bin/activate; python3 -m unittest discover -s tests -p 'test_*.py'
@@ -188,6 +188,7 @@ fontspector-pixel: fontspector-prepare
 
 check-language-shaping:
 	python3 scripts/check_language_shaping.py $(foreach dir,$(SHAPING_FONT_DIRS),--font-dir $(dir)) $(SHAPING_REPORTS)
+	$(PYTHON) scripts/check_pixel_shaping.py --fontspector-report out/fontspector/NamcheShadowPixel-fontspector-report.json
 
 check-language-shaping-sans:
 	python3 scripts/check_language_shaping.py \
@@ -211,6 +212,9 @@ check-pixel-ligature-carets: venv
 
 check-pixel-rupee: venv
 	. venv/bin/activate; python3 scripts/check_pixel_rupee.py
+
+check-pixel-shaping: venv
+	. venv/bin/activate; python3 scripts/check_pixel_shaping.py
 
 check-mono-hmetrics: venv
 	. venv/bin/activate; python3 scripts/check_mono_hmetrics.py
