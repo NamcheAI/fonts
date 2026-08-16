@@ -64,7 +64,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("documentation/proof-rounded-sans-variable.png"),
+        default=Path("documentation/proofs/sans-variable-named-instances.png"),
     )
     args = parser.parse_args()
     render(args.statics, args.variable, args.output)

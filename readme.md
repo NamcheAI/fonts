@@ -13,7 +13,7 @@ Namche Shadow is a three-family type suite based on
 | --- | --- | --- |
 | **Namche Shadow Sans** | Geist Sans | Custom inner-corner treatment designed by Michael Marte |
 | **Namche Shadow Mono** | Geist Mono | Identical outlines and metrics; renamed for future Namche-specific work |
-| **Namche Shadow Pixel** | Geist Pixel | Identical outlines and metrics; renamed for future Namche-specific work |
+| **Namche Shadow Pixel** | Geist Pixel | Geist-derived geometry with focused, reviewed additions |
 
 The repository follows the upstream Geist font-project layout: buildable
 sources are in `sources/`, generated releases are in `fonts/`, automation is
@@ -48,13 +48,13 @@ exports. See [`scripts/NAMCHE_SHADOW.md`](scripts/NAMCHE_SHADOW.md) and
 | `originals/geist/` | Immutable safecopy of the original Geist sources |
 | `scripts/` | Upstream build helpers and Namche Shadow Sans design tooling |
 | `packages/next/` | Next.js package, adapted from the upstream package |
-| `documentation/` | Specimens, proofs, and project history |
+| [`documentation/`](documentation/README.md) | QA policy, reviewed proofs, release text, and project history |
 
 The original archive must not be edited. Its provenance is documented in
 [`originals/geist/UPSTREAM.md`](originals/geist/UPSTREAM.md).
 
-The npm release workflow is prepared for token-free OIDC publishing. Its
-one-time registry bootstrap is documented in
+The npm release workflow uses token-free OIDC publishing. Its configuration
+and recovery notes are documented in
 [`documentation/TRUSTED_PUBLISHING.md`](documentation/TRUSTED_PUBLISHING.md).
 
 ### Static and variable fonts
@@ -78,8 +78,10 @@ The Namche Shadow Sans design direction and implementation is done by
 The suite is derived from Geist, created by Vercel in collaboration with
 Basement Studio, Andrés Briganti, Mateo Zaragoza, and the other contributors
 listed in [`AUTHORS.txt`](AUTHORS.txt) and [`CONTRIBUTORS.txt`](CONTRIBUTORS.txt).
-Namche Shadow Mono and Namche Shadow Pixel currently preserve their upstream
-outlines exactly; their new names do not imply an original redesign.
+Namche Shadow Mono preserves its upstream outlines exactly. Namche Shadow Pixel
+retains Geist Pixel's geometry while accepting only focused, reviewed glyph
+additions and shaping corrections; its new name does not imply a wholesale
+redesign.
 
 ## License
 
