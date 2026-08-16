@@ -57,6 +57,23 @@ The npm release workflow is prepared for token-free OIDC publishing. Its
 one-time registry bootstrap is documented in
 [`documentation/TRUSTED_PUBLISHING.md`](documentation/TRUSTED_PUBLISHING.md).
 
+### CDN
+
+Published releases are mirrored to `https://cdn.namche.ai` through the
+infrastructure repository. Use an immutable version in production:
+
+```css
+@import url("https://cdn.namche.ai/fonts/namche-shadow/v0.2.1/fonts.css");
+```
+
+The short-lived
+[`current` alias](https://cdn.namche.ai/fonts/namche-shadow/current/fonts.css)
+is intended for previews. Release files, their SHA-256 manifest, and the
+available-version index share the
+`https://cdn.namche.ai/fonts/namche-shadow/` prefix. A successful tagged GitHub
+release dispatches the approved archive to the CDN origin automatically; the
+font repository never holds origin or SSH credentials.
+
 ### Static and variable fonts
 
 Namche Shadow Sans ships static Thin through Black weights plus an upright
