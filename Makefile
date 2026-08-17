@@ -136,8 +136,9 @@ copy-npm-fonts:
 	$(PYTHON) scripts/rename_font_metadata.py --check packages/next/dist/fonts
 
 create-release-zip:
-	mkdir -p namche-shadow-font
-	cp -r fonts/* namche-shadow-font/
+	mkdir -p namche-shadow-font/fonts
+	cp -r fonts/* namche-shadow-font/fonts/
+	cp documentation/cdn/fonts.css namche-shadow-font/fonts/fonts.css
 	cp documentation/DESCRIPTION.en_us.html namche-shadow-font/ || true
 	cp documentation/article/ARTICLE.en_us.html namche-shadow-font/ || true
 	cp OFL.txt namche-shadow-font/

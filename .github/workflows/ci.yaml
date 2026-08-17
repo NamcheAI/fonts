@@ -391,6 +391,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    environment: production
     env:
       ZIP_NAME: ${{ needs.build.outputs.zip_name }}
       GH_TOKEN: ${{ github.token }}
@@ -408,6 +409,8 @@ jobs:
         continue-on-error: true
       - name: Copy OFL.txt to release directory
         run: cp OFL.txt ${{ env.ZIP_NAME }}/OFL.txt
+      - name: Copy CDN stylesheet to release directory
+        run: cp documentation/cdn/fonts.css ${{ env.ZIP_NAME }}/fonts/fonts.css
       - name: Remove proof/test outputs from release
         run: rm -rf ${{ env.ZIP_NAME }}/out
       - name: Set release file name
@@ -423,6 +426,15 @@ jobs:
         run: gh release upload ${{ github.ref_name }} ${{ env.RELEASE_ZIP_NAME }}.zip --clobber
       - name: Set release live
         run: gh release edit ${{ github.ref_name }} --draft=false
+      - name: Publish release to cdn.namche.ai
+        env:
+          GH_TOKEN: ${{ secrets.INFRA_DISPATCH_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh workflow run publish-cdn-release.yml \
+            --repo NamcheAI/infra \
+            --field publisher=namche-shadow-font \
+            --field "tag=$TAG"
 
   release-npm:
     name: Release packages
