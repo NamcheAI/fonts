@@ -429,11 +429,12 @@ jobs:
       - name: Publish release to cdn.namche.ai
         env:
           GH_TOKEN: ${{ secrets.INFRA_DISPATCH_TOKEN }}
+          TAG: ${{ github.ref_name }}
         run: |
           gh workflow run publish-cdn-release.yml \
             --repo NamcheAI/infra \
             --field publisher=namche-shadow-font \
-            --field tag=${{ github.ref_name }}
+            --field "tag=$TAG"
 
   release-npm:
     name: Release packages
