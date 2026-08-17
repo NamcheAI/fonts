@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render visual proof panels for the open Fontspector maintenance issues."""
+"""Render visual proof panels for reviewed Fontspector maintenance issues."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ RED = "#e03847"
 GREEN = "#0e7a5f"
 
 ROOT = Path(__file__).resolve().parent.parent
-OUTPUT = ROOT / "documentation" / "issues"
+OUTPUT = ROOT / "documentation" / "proofs" / "issues"
 SANS_DIR = ROOT / "fonts" / "NamcheShadowSans" / "ttf"
 MONO_DIR = ROOT / "fonts" / "NamcheShadowMono" / "ttf"
 PIXEL_DIR = ROOT / "fonts" / "NamcheShadowPixel" / "ttf"

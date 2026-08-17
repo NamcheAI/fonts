@@ -5,20 +5,18 @@ authorized to publish `@namche/namche-shadow`. It runs on GitHub-hosted Linux,
 requests `id-token: write`, uses Node 22.22.3 and npm 11.19.0, and does not use
 an `NPM_TOKEN`.
 
-## One-time bootstrap
+## Current configuration
 
-npm requires a package to exist before a trusted publisher can be attached.
-After the initial `0.1.0` package has been reviewed and merged to `main`, an
-owner of the `namche` npm organization must authenticate locally with 2FA and
-publish that first version from `packages/next`:
+The initial package bootstrap is complete. npm trusts the `release-npm` job in
+`NamcheAI/namche-shadow-font/.github/workflows/ci.yaml` to publish this package.
+Keep that repository, workflow filename, and npm package name synchronized.
 
-```sh
-npm login
-npm publish --access public
-```
+The package should remain configured to require two-factor authentication and
+disallow token publishing. The workflow uses short-lived OIDC credentials, so
+it continues to publish without an npm automation token.
 
-Then configure the exact GitHub Actions identity. With npm CLI 11.5.1 or
-newer, the equivalent of the npmjs.com form is:
+To restore the trusted-publisher configuration if it is removed, an owner of
+the `namche` npm organization can run this with npm CLI 11.5.1 or newer:
 
 ```sh
 npm trust github @namche/namche-shadow \
@@ -28,16 +26,15 @@ npm trust github @namche/namche-shadow \
   --yes
 ```
 
-The workflow filename is only `ci.yaml`, not `.github/workflows/ci.yaml`.
-Every value is case-sensitive.
+The workflow filename is only `ci.yaml`, not `.github/workflows/ci.yaml`; every
+value is case-sensitive.
 
-## Lock down token publishing
+## Verification and recovery
 
-Verify one OIDC release before changing the package's publishing access. Then
-open the package settings on npmjs.com, choose **Publishing access**, select
-**Require two-factor authentication and disallow tokens**, and revoke any
-obsolete automation token. Trusted publishing continues to work because it
-uses short-lived OIDC credentials instead of registry tokens.
+After changing the workflow identity or npm publishing settings, verify one
+OIDC release before revoking any temporary recovery credential. Do not add an
+`NPM_TOKEN` secret to the workflow. If a release fails, check the repository,
+workflow filename, environment, and package name configured on npmjs.com.
 
 Trusted publishing automatically adds provenance for this public package from
 this public repository; no `--provenance` flag or npm secret is required.

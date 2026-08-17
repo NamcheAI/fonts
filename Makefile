@@ -16,7 +16,7 @@ help:
 	@echo "  make refresh-sans-shaping COMPILED_SANS_BUILD=/path: refresh layout without changing approved outlines"
 	@echo "  make test:   Tests the fonts with fontspector"
 	@echo "  make proof:  Creates HTML proof documents in the proof/ directory"
-	@echo "  make images: Creates PNG specimen images in the documentation/ directory"
+	@echo "  make images: Regenerates the README banners in .docs/img/"
 	@echo
 
 build: build.stamp
@@ -223,7 +223,8 @@ check-mono-hmetrics: venv
 proof: venv build.stamp
 	TOCHECK=$$(find fonts/NamcheShadowSans/variable -type f 2>/dev/null); if [ -z "$$TOCHECK" ]; then TOCHECK=$$(find fonts/NamcheShadowSans/ttf -type f 2>/dev/null); fi ; . venv/bin/activate; mkdir -p out/ out/proof; diffenator2 proof $$TOCHECK -o out/proof
 
-images: venv $(DRAWBOT_OUTPUT)
+images: venv build.stamp
+	. venv/bin/activate; python3 scripts/render_banners.py
 
 %.png: %.py build.stamp
 	. venv/bin/activate; python3 $< --output $@

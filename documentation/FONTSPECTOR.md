@@ -47,7 +47,7 @@ regression limit and fingerprints the five glyphs' coordinates, curve flags,
 and contour endpoints at weights 150, 250, 350, 450, 550, 650, 750, and 850.
 This reviewed geometric baseline catches any intermediate shape change, not
 only empty glyphs. The visual comparison is maintained in
-`documentation/issues/issue-22-variable-interpolation.png`: dark shapes are
+`documentation/proofs/issues/issue-22-variable-interpolation.png`: dark shapes are
 shared by the VF and static; blue/red fringes show their small segmentation and
 rounding differences. Do not move points merely to silence these heuristics;
 reopen design review and regenerate the baseline if the proof, digest, or
@@ -73,8 +73,9 @@ guarded distance changes.
 
 Issue #23 reviewed the remaining outline, metric, reachability, and Pixel
 feature warnings against the rendered release fonts. The corresponding
-characters are maintained in `documentation/issues/issue-23-outline-metrics.png`
-and `documentation/issues/issue-23-outline-heuristics.png`.
+characters are maintained in
+`documentation/proofs/issues/issue-23-outline-metrics.png` and
+`documentation/proofs/issues/issue-23-outline-heuristics.png`.
 
 | Warning group | Classification | Decision |
 | --- | --- | --- |
@@ -116,14 +117,14 @@ Fontspector would still warn because it requires exactly `3`. Both changes are
 outside the approved invariants. `make check-mono-hmetrics` blocks any loss of
 the safe minimum or the reviewed advance inventory across the TrueType release
 and npm files. The proof is maintained at
-`documentation/issues/issue-33-mono-hmetrics.png`.
+`documentation/proofs/issues/issue-33-mono-hmetrics.png`.
 
 For Sans, the release-specific acceptance checks are stronger than the generic
 profile: every static weight must contain the complete seven-tier RoundCorner
 result, `H` must retain the expected four rounded inner segments, the five
 tier-7 glyphs must remain in all statics and stay parked from the VF, and no
 static may contain an `fvar` table. Run `scripts/check_sans_variable.py` and
-review `documentation/proof-rounded-sans-variable.png` for the VF.
+review `documentation/proofs/sans-variable-named-instances.png` for the VF.
 
 ## Naming compatibility
 
